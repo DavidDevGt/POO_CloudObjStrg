@@ -2,3 +2,4 @@
 
 ### Comandos necesarios
 - php migrations/migrate.php
+- composer install

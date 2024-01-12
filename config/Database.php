@@ -12,6 +12,11 @@ class Database {
     private $password = "";
     private $conn;
 
+/**
+ * Connection to MySQL database using PDO in PHP.
+ * 
+ * @return $this->conn;
+ */
     public function getDBConection() {
         $this->conn = null;
         try {

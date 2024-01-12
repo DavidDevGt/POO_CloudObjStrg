@@ -30,3 +30,22 @@ Después de configurar el proyecto, puedes acceder a la interfaz web para subir 
 - Implementación de un sistema de firma digital y verificación de documentos.
 - Integración con blockchain para el registro y verificación de la autenticidad de los documentos.
 
+## Estructura del Proyecto
+
+POO_CloudObjStrg/
+├── config/
+│ └── Database.php
+├── migrations/
+│ ├── 001_create_tables.sql
+│ └── migrate_data.php
+├── models/
+│ └── Upload.php
+├── public/
+│ ├── index.php
+│ └── upload_endpoint.php
+├── uploads/
+├── vendor/
+├── .gitignore
+├── composer.json
+├── composer.lock
+└── README.md

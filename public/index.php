@@ -51,6 +51,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
             bottom: 20px;
             right: 20px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column-reverse;
         }
 
         .notification {
@@ -58,6 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
             border-radius: 5px;
             margin-top: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.5s ease-in-out;
         }
     </style>
 </head>
@@ -80,8 +83,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
         </div>
     </div>
 
-    <div class="notification-container" x-show="showMessage" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div :class="{'alert alert-success': isSuccess, 'alert alert-danger': !isSuccess}" class="notification" x-text="message"></div>
+    <div class="notification-container" x-show="showMessage">
+        <div :class="{'alert alert-success': isSuccess, 'alert alert-danger': !isSuccess}" class="notification" x-text="message" x-show="showMessage" x-transition:leave="transition ease-in duration-500"></div>
     </div>
 
     <script>
@@ -105,25 +108,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
                             this.message = data.message;
                             this.isSuccess = data.success;
                             this.showMessage = true;
-                            setTimeout(() => this.showMessage = false, 3000);
+                            if (data.success) {
+                                this.clearForm();
+                            }
+                            setTimeout(() => {
+                                this.showMessage = false;
+                            }, 3000);
                         })
                         .catch(error => {
                             console.error('Error:', error);
                             this.message = 'Error al subir el archivo.';
                             this.isSuccess = false;
                             this.showMessage = true;
-                            setTimeout(() => this.showMessage = false, 3000);
+                            setTimeout(() => {
+                                this.showMessage = false;
+                            }, 3000);
                         })
                         .finally(() => {
                             this.isUploading = false;
                         });
+                },
+
+                clearForm() {
+                    document.getElementById('uploadForm').reset();
                 }
             }
         }
     </script>
-
 </body>
-
-
 
 </html>

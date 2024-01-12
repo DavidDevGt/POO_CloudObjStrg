@@ -1,12 +1,34 @@
+
 # PHP Object Storage with PDFs
 
-Este proyecto proporciona una solución simple para almacenar y gestionar documentos PDF en un servidor, utilizando PHP y MySQL. Los usuarios pueden subir documentos PDF, que se almacenan de forma segura en el servidor.
+Este proyecto proporciona una solución para almacenar y gestionar documentos PDF en un servidor, utilizando PHP y MySQL. Permite a los usuarios subir documentos PDF, que se almacenan de forma segura en el servidor.
+
+## Estructura del Proyecto
+
+```
+POO_CloudObjStrg/
+├── config/
+│   └── Database.php
+├── migrations/
+│   ├── 001_create_tables.sql
+│   └── migrate_data.php
+├── models/
+│   └── Upload.php
+├── public/
+│   ├── index.php
+│   └── upload_endpoint.php
+├── uploads/
+├── .gitignore
+├── composer.json
+├── composer.lock
+└── README.md
+```
 
 ## Características
 
-- Subida de archivos PDF.
-- Almacenamiento seguro de documentos.
+- Subida y almacenamiento seguro de archivos PDF.
 - Interfaz web para la gestión de archivos.
+- Backend en PHP con soporte para operaciones de base de datos MySQL.
 
 ## Comandos necesarios
 
@@ -29,23 +51,3 @@ Después de configurar el proyecto, puedes acceder a la interfaz web para subir 
 
 - Implementación de un sistema de firma digital y verificación de documentos.
 - Integración con blockchain para el registro y verificación de la autenticidad de los documentos.
-
-## Estructura del Proyecto
-
-POO_CloudObjStrg/
-├── config/
-│ └── Database.php
-├── migrations/
-│ ├── 001_create_tables.sql
-│ └── migrate_data.php
-├── models/
-│ └── Upload.php
-├── public/
-│ ├── index.php
-│ └── upload_endpoint.php
-├── uploads/
-├── vendor/
-├── .gitignore
-├── composer.json
-├── composer.lock
-└── README.md

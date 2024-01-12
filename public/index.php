@@ -1,21 +1,7 @@
 <?php
-
-require_once '../vendor/autoload.php';
-
-use Models\Upload;
-
-$upload = new Upload();
-$message = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
-    try {
-        $upload->uploadFile($_FILES["pdfFile"]);
-        $message = "Archivo subido con éxito.";
-    } catch (Exception $e) {
-        $message = $e->getMessage();
-    }
-}
-
+$string = "string";
+$array = [];
+$int = 20;
 ?>
 
 <!DOCTYPE html>

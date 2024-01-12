@@ -48,7 +48,7 @@ class Upload
     private function generateUniqueFileName($fileName)
     {
         $uniquePrefix = uniqid();
-        return $uniquePrefix . '-' . basename($fileName);
+        return $uniquePrefix . '_' . basename($fileName);
     }
 
     public function saveMetadata($fileName, $filePath)

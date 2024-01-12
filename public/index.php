@@ -31,6 +31,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <!-- jQuery (Quiero usar $.ajax) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <style>
         body {
             background: #121212;
@@ -69,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
     <div class="container-fluid d-flex justify-content-center align-items-center" style="height: 100vh;">
         <div class="row">
             <div class="col-12 text-center">
-                <h2 class="mb-3">Subir Archivo PDF <i class="bi bi-cloud-arrow-up-fill"></i></h2>
+                <h1 class="mb-3">Subir Archivo PDF <i class="bi bi-cloud-arrow-up-fill"></i></h1>
                 <form id="uploadForm" @submit.prevent="uploadFile" class="d-flex justify-content-center">
                     <div class="input-group mb-3">
                         <input type="file" class="form-control" name="pdfFile" id="pdfFile" required>
@@ -99,34 +102,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
                     this.isUploading = true;
                     const formData = new FormData(document.getElementById('uploadForm'));
 
-                    fetch('./upload_endpoint.php', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
+                    $.ajax({
+                        url: './upload_endpoint.php',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        success: (data) => {
                             this.message = data.message;
                             this.isSuccess = data.success;
                             this.showMessage = true;
                             if (data.success) {
                                 this.clearForm();
                             }
-                            setTimeout(() => {
-                                this.showMessage = false;
-                            }, 3000);
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
+                        },
+                        error: (jqXHR, textStatus, errorThrown) => {
+                            console.error('Error:', errorThrown);
                             this.message = 'Error al subir el archivo.';
                             this.isSuccess = false;
                             this.showMessage = true;
+                        },
+                        complete: () => {
+                            this.isUploading = false;
                             setTimeout(() => {
                                 this.showMessage = false;
                             }, 3000);
-                        })
-                        .finally(() => {
-                            this.isUploading = false;
-                        });
+                        }
+                    });
                 },
 
                 clearForm() {
@@ -135,6 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
             }
         }
     </script>
+
 </body>
 
 </html>

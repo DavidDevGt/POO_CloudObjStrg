@@ -51,3 +51,6 @@ Después de configurar el proyecto, puedes acceder a la interfaz web para subir 
 
 - Implementación de un sistema de firma digital y verificación de documentos.
 - Integración con blockchain para el registro y verificación de la autenticidad de los documentos.
+
+## Versión
+- Version 0.0.l Snaphost 1K6WS1L

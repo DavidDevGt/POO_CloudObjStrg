@@ -44,23 +44,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
 </head>
 
 <body x-data="{ isUploading: false, message: '<?php echo $message; ?>' }">
-    <div class="container">
+    <div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
         <div class="row">
             <div class="col-12 text-center">
-                <h1 class="mb-3">Subir Archivo PDF</h1>
-                <form action="index.php" method="post" enctype="multipart/form-data" @submit="isUploading = true">
-                    <div class="mb-3">
+                <h1 class="mb-3"><i class="bi bi-cloud-arrow-up-fill"></i> Subir Archivo PDF</h1>
+                <form action="index.php" method="post" enctype="multipart/form-data" @submit="isUploading = true" class="d-flex justify-content-center">
+                    <div class="input-group mb-3">
                         <input type="file" class="form-control" name="pdfFile" id="pdfFile" required>
+                        <button type="submit" class="btn btn-primary" :disabled="isUploading">
+                            <i class="bi bi-upload" x-show="!isUploading"></i>
+                            <span x-show="isUploading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        </button>
                     </div>
-                    <button type="submit" class="btn btn-primary" :disabled="isUploading">
-                        Subir
-                        <span x-show="isUploading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    </button>
                 </form>
                 <div x-show="message" class="alert" :class="{'alert-success': message === 'Archivo subido con éxito.', 'alert-danger': message !== 'Archivo subido con éxito.'}" x-text="message"></div>
             </div>
         </div>
     </div>
 </body>
+
 
 </html>

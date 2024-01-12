@@ -18,38 +18,42 @@ class Upload
 
     public function uploadFile($file)
     {
-        // TODO - Upload file to server
+        // TODO - Cambiar el directorio en producción, fuera de la carpeta del proyecto
         $targetDir = "../uploads/";
-        $targetFile = $targetDir . basename($file["name"]);
-        $fileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+        $fileType = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
 
-        // Revisar si el archivo es un PDF
+        // Validar tipo de archivo
         if ($fileType != "pdf") {
-            throw new Exception("El archivo que quieres subir no es un PDF");
+            throw new Exception("Solo se permiten archivos PDF.");
         }
 
-        // Revisar si el archivo ya existe
-        if (file_exists($targetFile)) {
-            throw new Exception("El archivo que quieres subir ya existe");
-        }
-
-        // Revisar el tamaño del archivo (5MB)
+        // Validar tamaño del archivo (5MB)
         if ($file["size"] > 5000000) {
-            throw new Exception("El archivo que quieres subir es demasiado grande");
+            throw new Exception("El archivo es demasiado grande.");
         }
+
+        // Generar un nombre de archivo único
+        $newFileName = $this->generateUniqueFileName($file["name"]);
+        $targetFile = $targetDir . $newFileName;
 
         // Subir el archivo
         if (move_uploaded_file($file["tmp_name"], $targetFile)) {
-            $this->saveMetadata($file["name"], $targetFile);
+            $this->saveMetadata($newFileName, $targetFile);
             return true;
         } else {
-            throw new Exception("Hubo un error al subir el archivo.");
+            throw new Exception("Error al subir el archivo.");
         }
+    }
+
+    private function generateUniqueFileName($fileName)
+    {
+        $uniquePrefix = uniqid();
+        return $uniquePrefix . '-' . basename($fileName);
     }
 
     public function saveMetadata($fileName, $filePath)
     {
-        // TODO - Save metadata to database
+        // TODO - Mejorar 
         try {
             $stmt = $this->db->prepare("INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)");
             $stmt->bindParam(":nombre", $fileName);

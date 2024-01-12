@@ -22,12 +22,12 @@ class Upload
         $targetDir = "../uploads/";
         $fileType = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
 
-        // Validar tipo de archivo
+        // Validar tipo de archivo (PDF) Tambien se hizo en el frontend
         if ($fileType != "pdf") {
             throw new Exception("Solo se permiten archivos PDF.");
         }
 
-        // Validar tamaño del archivo (5MB)
+        // Validar tamaño del archivo (5MB) Tambien se hizo en el frontend
         if ($file["size"] > 5000000) {
             throw new Exception("El archivo es demasiado grande.");
         }

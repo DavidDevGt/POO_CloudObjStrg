@@ -17,6 +17,8 @@ $int = 20;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         body {
@@ -83,6 +85,15 @@ $int = 20;
                 isSuccess: false,
 
                 uploadFile() {
+                    // Validar archivo
+                    const fileInput = document.getElementById('pdfFile');
+                    const file = fileInput.files[0];
+
+                    // Validar si esta vacio ,tipo de archivo y tamaño máximo
+                    if (!this.validateFile(file)) {
+                        return;
+                    }
+
                     this.isUploading = true;
                     const formData = new FormData(document.getElementById('uploadForm'));
 
@@ -106,6 +117,28 @@ $int = 20;
                                 this.showMessage = false;
                             }, 3000);
                         });
+                },
+
+                validateFile(file) {
+                    const maxFileSize = 5000000; // 5MB
+                    const allowedExtension = 'application/pdf'; // PDF
+
+                    if (!file) {
+                        Swal.fire('Error', 'Por favor seleccione un archivo', 'error');
+                        return false;
+                    }
+
+                    if (file.type !== allowedExtension) {
+                        Swal.fire('Error', 'Solo se permiten archivos PDF', 'error');
+                        return false;
+                    }
+
+                    if (file.size > maxFileSize) {
+                        Swal.fire('Error', 'El archivo es demasiado grande. Máximo 5 MB.', 'error');
+                        return false;
+                    }
+
+                    return true;
                 },
 
                 handleResponse(data) {

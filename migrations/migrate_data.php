@@ -28,4 +28,4 @@ class Migrate {
 // Si pasa o no pasa solo Dios lo sabe
 
 $migrate = new Migrate();
-$migrate->executeMigration("migrations/000_initialize_database.sql");
+$migrate->executeMigration("001_create_tables.sql");

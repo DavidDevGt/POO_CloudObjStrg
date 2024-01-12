@@ -17,8 +17,6 @@ $int = 20;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-    <!-- jQuery (Quiero usar $.ajax) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <style>
         body {
@@ -88,33 +86,35 @@ $int = 20;
                     this.isUploading = true;
                     const formData = new FormData(document.getElementById('uploadForm'));
 
-                    $.ajax({
-                        url: './upload_endpoint.php',
-                        type: 'POST',
-                        data: formData,
-                        contentType: false,
-                        processData: false,
-                        success: (data) => {
-                            this.message = data.message;
-                            this.isSuccess = data.success;
-                            this.showMessage = true;
-                            if (data.success) {
-                                this.clearForm();
-                            }
-                        },
-                        error: (jqXHR, textStatus, errorThrown) => {
-                            console.error('Error:', errorThrown);
+                    fetch('./upload_endpoint.php', {
+                            method: 'POST',
+                            body: formData,
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            this.handleResponse(data);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
                             this.message = 'Error al subir el archivo.';
                             this.isSuccess = false;
                             this.showMessage = true;
-                        },
-                        complete: () => {
+                        })
+                        .finally(() => {
                             this.isUploading = false;
                             setTimeout(() => {
                                 this.showMessage = false;
                             }, 3000);
-                        }
-                    });
+                        });
+                },
+
+                handleResponse(data) {
+                    this.message = data.message;
+                    this.isSuccess = data.success;
+                    this.showMessage = true;
+                    if (data.success) {
+                        this.clearForm();
+                    }
                 },
 
                 clearForm() {

@@ -12,11 +12,10 @@ $response = ['success' => false, 'message' => ''];
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
     try {
         $upload->uploadFile($_FILES["pdfFile"]);
-        // Después de subir el archivo correctamente
-        $uniqueId = bin2hex(random_bytes(16)); // Genera un identificador único
-        $expiryTime = time() + (12 * 60 * 60); // 12 horas desde ahora
+        $uniqueId = bin2hex(random_bytes(16));
+        $timeExpire = time() + 3600 * 12; 
 
-        $response = ['success' => true, 'message' => "Archivo PDF subido con éxito."];
+        echo json_encode(['success' => true, 'message' => 'Archivo subido con éxito', 'link' => 'edit_pdf.php?id=' . $uniqueId]);
     } catch (Exception $e) {
         $response = ['success' => false, 'message' => $e->getMessage()];
     }

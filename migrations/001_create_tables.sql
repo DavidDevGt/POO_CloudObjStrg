@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS enlaces_cortos (
     enlace VARCHAR(255) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_expiracion DATETIME DEFAULT CURRENT_TIMESTAMP + INTERVAL 12 HOUR,
+    fecha_expiracion DATETIME,
     FOREIGN KEY (documento_id) REFERENCES documentos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

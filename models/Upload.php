@@ -59,6 +59,8 @@ class Upload
             $stmt->bindParam(":nombre", $fileName);
             $stmt->bindParam(":ruta", $filePath);
             $stmt->execute();
+
+            return $this->db->lastInsertId();
         } catch (PDOException $e) {
             throw new Exception("Error al guardar metadatos: " . $e->getMessage());
         }

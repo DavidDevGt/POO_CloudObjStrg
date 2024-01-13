@@ -5,15 +5,33 @@ CREATE TABLE IF NOT EXISTS documentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(255) NOT NULL,
     ruta VARCHAR(255) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS enlaces_cortos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    documento_id INT NOT NULL,
+    enlace VARCHAR(255) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion DATETIME DEFAULT CURRENT_TIMESTAMP + INTERVAL 12 HOUR,
+    FOREIGN KEY (documento_id) REFERENCES documentos(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS firmas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    documento_id INT NOT NULL,
+    firma_data BLOB NOT NULL,
+    fecha_firma DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (documento_id) REFERENCES documentos(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS acciones (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    documeto_id INT NOT NULL,
-    accion ENUM('descargar', 'eliminar', 'subir') NOT NULL,
+    documento_id INT NOT NULL,
+    accion ENUM('descargar', 'eliminar', 'subir', 'firmar') NOT NULL,
     fecha_accion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (documeto_id) REFERENCES documentos(id)
+    FOREIGN KEY (documento_id) REFERENCES documentos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

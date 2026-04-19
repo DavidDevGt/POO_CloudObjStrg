@@ -1,28 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Models;
 
 use Config\Database;
-use Exception;
+use PDO;
 use PDOException;
+use RuntimeException;
 
 class AutoDelete
 {
-    private $db;
+    private PDO $db;
 
     public function __construct()
     {
-        $database = new Database();
-        $this->db = $database->getDBConection();
+        $this->db = Database::getConnection();
     }
 
-    public function deleteExpiredDocuments()
+    public function deleteExpiredDocuments(): void
     {
         try {
-            $this->db->exec("UPDATE documentos SET active = FALSE WHERE fecha_subida < NOW() - INTERVAL 12 HOUR");
-            $this->db->exec("UPDATE enlaces_cortos SET active = FALSE WHERE fecha_expiracion < NOW()");
+            $this->db->beginTransaction();
+
+            $this->db->exec(
+                "UPDATE documentos SET active = FALSE
+                 WHERE active = TRUE AND fecha_subida < NOW() - INTERVAL 12 HOUR"
+            );
+            $this->db->exec(
+                "UPDATE enlaces_cortos SET active = FALSE
+                 WHERE active = TRUE AND fecha_expiracion < NOW()"
+            );
+
+            $this->db->commit();
         } catch (PDOException $e) {
-            throw new Exception("Error al eliminar documentos o enlaces caducados: " . $e->getMessage());
+            $this->db->rollBack();
+            throw new RuntimeException(
+                'Failed to deactivate expired records.',
+                0,
+                $e
+            );
         }
     }
 }

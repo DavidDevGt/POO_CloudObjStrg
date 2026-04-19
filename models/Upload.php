@@ -1,68 +1,99 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Models;
 
 use Config\Database;
-use Exception;
+use finfo;
+use PDO;
 use PDOException;
+use RuntimeException;
 
 class Upload
 {
-    private $db;
+    private PDO $db;
+    private string $uploadDir;
+
+    private const MAX_FILE_SIZE  = 5_000_000;
+    private const ALLOWED_MIME   = 'application/pdf';
+    private const FILENAME_BYTES = 16;
 
     public function __construct()
     {
-        $database = new Database();
-        $this->db = $database->getDBConection();
-    }
+        $this->db        = Database::getConnection();
+        $this->uploadDir = dirname(__DIR__) . '/uploads/';
 
-    public function uploadFile($file)
-    {
-        // TODO - Cambiar el directorio en producción, fuera de la carpeta del proyecto
-        $targetDir = "../uploads/";
-        $fileType = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
-
-        // Validar tipo de archivo (PDF) Tambien se hizo en el frontend
-        if ($fileType != "pdf") {
-            throw new Exception("Solo se permiten archivos PDF.");
-        }
-
-        // Validar tamaño del archivo (5MB) Tambien se hizo en el frontend
-        if ($file["size"] > 5000000) {
-            throw new Exception("El archivo es demasiado grande.");
-        }
-
-        // Generar un nombre de archivo único
-        $newFileName = $this->generateUniqueFileName($file["name"]);
-        $targetFile = $targetDir . $newFileName;
-
-        // Subir el archivo
-        if (move_uploaded_file($file["tmp_name"], $targetFile)) {
-            $this->saveMetadata($newFileName, $targetFile);
-            return true;
-        } else {
-            throw new Exception("Error al subir el archivo.");
+        if (!is_dir($this->uploadDir)) {
+            if (!mkdir($this->uploadDir, 0755, true) && !is_dir($this->uploadDir)) {
+                throw new RuntimeException('Could not create upload directory.');
+            }
         }
     }
 
-    private function generateUniqueFileName($fileName)
+    /**
+     * Validates, moves the file, and persists metadata inside a single transaction.
+     * Returns the new document ID on success.
+     */
+    public function upload(array $file): int
     {
-        $uniquePrefix = uniqid();
-        return $uniquePrefix . '_' . basename($fileName);
-    }
+        $this->validate($file);
 
-    public function saveMetadata($fileName, $filePath)
-    {
-        // TODO - Mejorar 
+        $storedName  = $this->generateStoredName();
+        $destination = $this->uploadDir . $storedName;
+
+        $this->db->beginTransaction();
         try {
-            $stmt = $this->db->prepare("INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)");
-            $stmt->bindParam(":nombre", $fileName);
-            $stmt->bindParam(":ruta", $filePath);
-            $stmt->execute();
+            if (!move_uploaded_file($file['tmp_name'], $destination)) {
+                throw new RuntimeException('Failed to move the uploaded file.');
+            }
 
-            return $this->db->lastInsertId();
-        } catch (PDOException $e) {
-            throw new Exception("Error al guardar metadatos: " . $e->getMessage());
+            $documentId = $this->saveMetadata($file['name'], $storedName);
+            $this->db->commit();
+
+            return $documentId;
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            if (file_exists($destination)) {
+                unlink($destination);
+            }
+            throw $e;
         }
+    }
+
+    private function validate(array $file): void
+    {
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Upload error, code: ' . $file['error']);
+        }
+
+        $finfo    = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        if ($mimeType !== self::ALLOWED_MIME) {
+            throw new RuntimeException('Only PDF files are allowed.');
+        }
+
+        if ($file['size'] > self::MAX_FILE_SIZE) {
+            throw new RuntimeException('File exceeds the 5 MB size limit.');
+        }
+    }
+
+    private function generateStoredName(): string
+    {
+        return bin2hex(random_bytes(self::FILENAME_BYTES)) . '.pdf';
+    }
+
+    private function saveMetadata(string $originalName, string $storedName): int
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)'
+        );
+        $stmt->execute([
+            ':nombre' => $originalName,
+            ':ruta'   => $storedName,
+        ]);
+
+        return (int) $this->db->lastInsertId();
     }
 }

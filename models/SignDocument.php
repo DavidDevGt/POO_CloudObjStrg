@@ -1,30 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Models;
 
 use Config\Database;
-use Exception;
+use PDO;
 use PDOException;
+use RuntimeException;
 
 class SignDocument
 {
-    private $db;
+    private PDO $db;
 
     public function __construct()
     {
-        $database = new Database();
-        $this->db = $database->getDBConection();
+        $this->db = Database::getConnection();
     }
 
-    public function saveSignature($documentoId, $firmaData)
+    public function saveSignature(int $documentId, string $signatureData): int
     {
         try {
-            $stmt = $this->db->prepare("INSERT INTO firmas (documento_id, firma_data) VALUES (:documento_id, :firma_data)");
-            $stmt->bindParam(":documento_id", $documentoId);
-            $stmt->bindParam(":firma_data", $firmaData);
-            $stmt->execute();
+            $stmt = $this->db->prepare(
+                'INSERT INTO firmas (documento_id, firma_data) VALUES (:documento_id, :firma_data)'
+            );
+            $stmt->execute([
+                ':documento_id' => $documentId,
+                ':firma_data'   => $signatureData,
+            ]);
+
+            return (int) $this->db->lastInsertId();
         } catch (PDOException $e) {
-            throw new Exception("Error al guardar la firma: " . $e->getMessage());
+            throw new RuntimeException('Failed to save signature.', 0, $e);
         }
     }
 }

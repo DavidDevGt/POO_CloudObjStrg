@@ -1,31 +1,34 @@
 <?php
 
-require_once '../vendor/autoload.php';
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/config/bootstrap.php';
 
 use Models\Upload;
 use Models\UrlShortener;
 
 header('Content-Type: application/json');
 
-$upload = new Upload();
-$urlShortener = new UrlShortener();
-$response = ['success' => false, 'message' => ''];
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["pdfFile"])) {
-    try {
-        // Subida del archivo
-        if ($upload->uploadFile($_FILES["pdfFile"])) {
-            $documentoId = $upload->saveMetadata($_FILES["pdfFile"]["name"], "../uploads/" . $_FILES["pdfFile"]["name"]);
-            $urlBase = $urlShortener->obtenerUrlBaseActual();
-            $enlace = $urlShortener->createEncodedShortUrl($documentoId, $urlBase);
-
-            $response = ['success' => true, 'message' => 'Archivo subido con éxito', 'link' => $enlace];
-        } else {
-            $response = ['success' => false, 'message' => 'No se pudo subir el archivo'];
-        }
-    } catch (Exception $e) {
-        $response = ['success' => false, 'message' => $e->getMessage()];
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_FILES['pdfFile'])) {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
+    exit;
 }
 
-echo json_encode($response);
+try {
+    $upload       = new Upload();
+    $urlShortener = new UrlShortener();
+
+    $documentId = $upload->upload($_FILES['pdfFile']);
+    $shortUrl   = $urlShortener->createShortUrl($documentId, $urlShortener->getBaseUrl());
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Archivo subido con éxito.',
+        'link'    => $shortUrl,
+    ]);
+} catch (\Throwable $e) {
+    error_log('[upload_endpoint] ' . $e->getMessage());
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+}

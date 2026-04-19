@@ -1,32 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Config;
 
 use PDO;
 use PDOException;
+use RuntimeException;
 
 class Database
 {
-    private $host = "localhost";
-    private $db_name = "pdf_store";
-    private $username = "root";
-    private $password = "";
-    private $conn;
+    private static ?PDO $instance = null;
 
-    public function getDBConection()
+    private function __construct() {}
+
+    public static function getConnection(): PDO
     {
-        $this->conn = null;
-        try {
-            // Conexión inicial al servidor MySQL
-            $this->conn = new PDO("mysql:host=" . $this->host, $this->username, $this->password);
-            $this->conn->exec("set names utf8");
-
-            // Crear la base de datos si no existe y reconectar
-            $this->conn->exec("CREATE DATABASE IF NOT EXISTS `$this->db_name`;
-                               USE `$this->db_name`;");
-        } catch (PDOException $exception) {
-            echo "Error de conexión: " . $exception->getMessage();
+        if (self::$instance !== null) {
+            return self::$instance;
         }
-        return $this->conn;
+
+        $dsn = sprintf(
+            'mysql:host=%s;dbname=%s;charset=utf8mb4',
+            $_ENV['DB_HOST'],
+            $_ENV['DB_NAME']
+        );
+
+        try {
+            self::$instance = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (PDOException $e) {
+            throw new RuntimeException(
+                'Database connection failed.',
+                (int) $e->getCode(),
+                $e
+            );
+        }
+
+        return self::$instance;
     }
 }

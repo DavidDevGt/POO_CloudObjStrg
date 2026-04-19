@@ -1,31 +1,40 @@
 <?php
 
-require_once '../config/Database.php';
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/config/bootstrap.php';
 
 use Config\Database;
 
-class Migrate {
-    private $db;
+class Migrate
+{
+    private \PDO $db;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getDBConection();
+    public function __construct()
+    {
+        $this->db = Database::getConnection();
     }
 
-    public function executeMigration($filePath) {
+    public function run(string $filePath): void
+    {
+        if (!file_exists($filePath)) {
+            throw new RuntimeException("Migration file not found: {$filePath}");
+        }
+
+        $sql = file_get_contents($filePath);
+
         try {
-            $sql = file_get_contents($filePath);
             $this->db->exec($sql);
-            echo "Migración ejecutada con éxito: " . basename($filePath) . "\n";
-        } catch (PDOException  $e) {
-            echo "Error de migración: " . $e->getMessage() . "\n";
+            echo 'Migration applied: ' . basename($filePath) . PHP_EOL;
+        } catch (\PDOException $e) {
+            throw new RuntimeException(
+                'Migration failed [' . basename($filePath) . ']: ' . $e->getMessage(),
+                0,
+                $e
+            );
         }
     }
-
 }
 
-// Echarse la migración como si fueras mexicano en la frontera :v
-// Si pasa o no pasa solo Dios lo sabe
-
 $migrate = new Migrate();
-$migrate->executeMigration("001_create_tables.sql");
+$migrate->run(__DIR__ . '/001_create_tables.sql');

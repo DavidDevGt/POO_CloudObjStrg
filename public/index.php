@@ -1,8 +1,3 @@
-<?php
-$string = "string";
-$array = [];
-$int = 20;
-?>
 
 <!DOCTYPE html>
 <html lang="es">

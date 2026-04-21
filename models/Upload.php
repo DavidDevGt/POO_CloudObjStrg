@@ -7,22 +7,20 @@ namespace Models;
 use Config\Database;
 use finfo;
 use PDO;
-use PDOException;
 use RuntimeException;
 
 class Upload
 {
-    private PDO $db;
+    private PDO    $db;
     private string $uploadDir;
 
-    private const MAX_FILE_SIZE  = 5_000_000;
     private const ALLOWED_MIME   = 'application/pdf';
     private const FILENAME_BYTES = 16;
 
-    public function __construct()
+    public function __construct(?PDO $db = null, ?string $uploadDir = null)
     {
-        $this->db        = Database::getConnection();
-        $this->uploadDir = dirname(__DIR__) . '/uploads/';
+        $this->db        = $db ?? Database::getConnection();
+        $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
 
         if (!is_dir($this->uploadDir)) {
             if (!mkdir($this->uploadDir, 0755, true) && !is_dir($this->uploadDir)) {
@@ -33,7 +31,9 @@ class Upload
 
     /**
      * Validates, moves the file, and persists metadata inside a single transaction.
-     * Returns the new document ID on success.
+     *
+     * @throws RuntimeException on any validation or I/O failure.
+     * @return int  The new document ID.
      */
     public function upload(array $file): int
     {
@@ -74,8 +74,11 @@ class Upload
             throw new RuntimeException('Only PDF files are allowed.');
         }
 
-        if ($file['size'] > self::MAX_FILE_SIZE) {
-            throw new RuntimeException('File exceeds the 5 MB size limit.');
+        $maxSize = (int) ($_ENV['UPLOAD_MAX_SIZE'] ?? 5_000_000);
+        if ($file['size'] > $maxSize) {
+            throw new RuntimeException(
+                'File exceeds the ' . round($maxSize / 1_000_000) . ' MB size limit.'
+            );
         }
     }
 
@@ -90,7 +93,7 @@ class Upload
             'INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)'
         );
         $stmt->execute([
-            ':nombre' => $originalName,
+            ':nombre' => mb_substr($originalName, 0, 255),
             ':ruta'   => $storedName,
         ]);
 

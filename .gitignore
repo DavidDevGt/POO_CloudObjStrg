@@ -3,3 +3,24 @@ uploads/*
 !uploads/.gitkeep
 !uploads/.htaccess
 .env
+.phpunit.result.cache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache / temp
+cache/
+tmp/
+.cache/

@@ -16,3 +16,6 @@ $dotenv->required(['APP_ENV'])->allowedValues(['development', 'production', 'tes
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+use Config\Auth;
+Auth::loadFromSession();

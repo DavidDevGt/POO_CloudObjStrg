@@ -13,16 +13,19 @@ class Document
 {
     private PDO    $db;
     private string $uploadDir;
+    private ?int   $userId;
 
-    public function __construct(?PDO $db = null, ?string $uploadDir = null)
+    public function __construct(?PDO $db = null, ?string $uploadDir = null, ?int $userId = null)
     {
         $this->db        = $db ?? Database::getConnection();
         $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
+        $this->userId    = $userId;
     }
 
     /**
      * Fetches a document + its link record by the short URL slug.
      * Returns null when not found, inactive, or expired.
+     * No user_id filter — signers access by slug without an account.
      */
     public function findBySlug(string $slug): ?array
     {
@@ -44,6 +47,31 @@ class Document
         $row = $stmt->fetch();
 
         return $row ?: null;
+    }
+
+    /**
+     * Returns all active documents belonging to a user, newest first.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listByUser(int $userId, int $limit = 50, int $offset = 0): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT d.id, d.nombre, d.ruta, d.fecha_subida,
+                    e.slug, e.enlace, e.fecha_expiracion
+             FROM   documentos d
+             LEFT JOIN enlaces_cortos e ON e.documento_id = d.id AND e.active = TRUE
+             WHERE  d.user_id = :user_id
+               AND  d.active  = TRUE
+             ORDER BY d.fecha_subida DESC
+             LIMIT  :lim OFFSET :off"
+        );
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim',     $limit,  PDO::PARAM_INT);
+        $stmt->bindValue(':off',     $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function isExpired(array $document): bool
@@ -95,13 +123,24 @@ class Document
     public function logAccess(int $documentId, string $accion): void
     {
         try {
-            $stmt = $this->db->prepare(
-                'INSERT INTO acciones (documento_id, accion) VALUES (:documento_id, :accion)'
-            );
-            $stmt->execute([
-                ':documento_id' => $documentId,
-                ':accion'       => $accion,
-            ]);
+            if ($this->userId !== null) {
+                $stmt = $this->db->prepare(
+                    'INSERT INTO acciones (documento_id, accion, user_id) VALUES (:documento_id, :accion, :user_id)'
+                );
+                $stmt->execute([
+                    ':documento_id' => $documentId,
+                    ':accion'       => $accion,
+                    ':user_id'      => $this->userId,
+                ]);
+            } else {
+                $stmt = $this->db->prepare(
+                    'INSERT INTO acciones (documento_id, accion) VALUES (:documento_id, :accion)'
+                );
+                $stmt->execute([
+                    ':documento_id' => $documentId,
+                    ':accion'       => $accion,
+                ]);
+            }
         } catch (PDOException $e) {
             // Audit failures must not break the main flow; log and continue.
             error_log('[Document::logAccess] ' . $e->getMessage());

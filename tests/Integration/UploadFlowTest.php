@@ -10,6 +10,7 @@ use Models\Document;
 use Models\SignDocument;
 use Models\Upload;
 use Models\UrlShortener;
+use Models\User;
 use Tests\TestCase;
 
 /**
@@ -30,6 +31,7 @@ class UploadFlowTest extends TestCase
     private \PDO   $db;
     private string $tmpDir;
     private string $testFile;
+    private int    $testUserId;
 
     protected function setUp(): void
     {
@@ -47,6 +49,10 @@ class UploadFlowTest extends TestCase
         // Create a minimal valid PDF file.
         $this->testFile = $this->tmpDir . 'sample.pdf';
         file_put_contents($this->testFile, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF");
+
+        // Create an integration test user.
+        $userModel        = new User($this->db);
+        $this->testUserId = $userModel->create('integration@test.com', 'password123', 'Integration');
     }
 
     protected function tearDown(): void
@@ -64,7 +70,7 @@ class UploadFlowTest extends TestCase
     public function testFullUploadAndRetrievalFlow(): void
     {
         // 1. Simulate saving metadata directly (upload() needs move_uploaded_file).
-        $upload     = new Upload($this->db, $this->tmpDir);
+        $upload     = new Upload($this->db, $this->tmpDir, $this->testUserId);
         $storedName = bin2hex(random_bytes(16)) . '.pdf';
 
         // Copy test file as if it were already moved.
@@ -78,7 +84,7 @@ class UploadFlowTest extends TestCase
         $this->assertGreaterThan(0, $documentId);
 
         // 2. Create a short URL for the document.
-        $shortener = new UrlShortener($this->db);
+        $shortener = new UrlShortener($this->db, $this->testUserId);
         $shortUrl  = $shortener->createShortUrl($documentId, 'http://localhost/public');
 
         $this->assertStringContainsString('/edit_pdf.php?id=', $shortUrl);
@@ -93,6 +99,11 @@ class UploadFlowTest extends TestCase
         $this->assertNotNull($doc);
         $this->assertEquals($documentId, (int) $doc['id']);
         $this->assertEquals('integration_test.pdf', $doc['nombre']);
+
+        // 4. Verify document appears in user's list.
+        $userDocs = $docModel->listByUser($this->testUserId);
+        $ids      = array_column($userDocs, 'id');
+        $this->assertContains((string) $documentId, $ids);
     }
 
     public function testFindBySlugReturnsNullForUnknownSlug(): void
@@ -153,6 +164,7 @@ class UploadFlowTest extends TestCase
             $this->db->exec('DELETE FROM firmas');
             $this->db->exec('DELETE FROM enlaces_cortos');
             $this->db->exec('DELETE FROM documentos');
+            $this->db->exec('DELETE FROM usuarios');
         } catch (\Throwable) {
             // Best-effort cleanup.
         }

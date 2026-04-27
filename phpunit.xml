@@ -22,7 +22,9 @@
     <source>
         <include>
             <directory>config</directory>
+            <directory>contracts</directory>
             <directory>models</directory>
+            <directory>storage</directory>
         </include>
     </source>
 
@@ -35,5 +37,6 @@
         <env name="UPLOAD_MAX_SIZE"   value="5000000"/>
         <env name="AUTO_DELETE_HOURS" value="12"/>
         <env name="BASE_URL"          value="http://localhost/public"/>
+        <env name="BCRYPT_COST"       value="4"/>
     </php>
 </phpunit>

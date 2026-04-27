@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/bootstrap.php';
 
+use Config\Auth;
 use Config\Csrf;
+
+if (!Auth::isAuthenticated()) {
+    header('Location: login.php');
+    exit;
+}
 
 $csrfToken = Csrf::getToken();
 ?>

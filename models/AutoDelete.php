@@ -14,12 +14,14 @@ class AutoDelete
     private PDO    $db;
     private string $uploadDir;
     private int    $deleteIntervalHours;
+    private ?int   $userId;
 
-    public function __construct(?PDO $db = null, ?string $uploadDir = null)
+    public function __construct(?PDO $db = null, ?string $uploadDir = null, ?int $userId = null)
     {
         $this->db                  = $db ?? Database::getConnection();
         $this->uploadDir           = $uploadDir ?? dirname(__DIR__) . '/uploads/';
         $this->deleteIntervalHours = (int) ($_ENV['AUTO_DELETE_HOURS'] ?? 12);
+        $this->userId              = $userId;
     }
 
     /**
@@ -29,25 +31,31 @@ class AutoDelete
      */
     public function deleteExpiredDocuments(): void
     {
+        $userFilter = $this->userId !== null ? 'AND user_id = :user_id' : '';
+
         try {
             $this->db->beginTransaction();
 
             // Collect file paths before marking inactive.
-            $select = $this->db->prepare(
-                "SELECT ruta FROM documentos
-                 WHERE  active = TRUE
-                   AND  fecha_subida < DATE_SUB(NOW(), INTERVAL :hours HOUR)"
-            );
-            $select->execute([':hours' => $this->deleteIntervalHours]);
+            $selectSql = "SELECT ruta FROM documentos
+                          WHERE  active = TRUE
+                            AND  fecha_subida < DATE_SUB(NOW(), INTERVAL :hours HOUR)
+                          {$userFilter}";
+            $select = $this->db->prepare($selectSql);
+            $params = [':hours' => $this->deleteIntervalHours];
+            if ($this->userId !== null) {
+                $params[':user_id'] = $this->userId;
+            }
+            $select->execute($params);
             $expiredPaths = $select->fetchAll(PDO::FETCH_COLUMN, 0);
 
             // Deactivate expired documents.
-            $updateDocs = $this->db->prepare(
-                "UPDATE documentos SET active = FALSE
-                 WHERE  active = TRUE
-                   AND  fecha_subida < DATE_SUB(NOW(), INTERVAL :hours HOUR)"
-            );
-            $updateDocs->execute([':hours' => $this->deleteIntervalHours]);
+            $updateSql = "UPDATE documentos SET active = FALSE
+                          WHERE  active = TRUE
+                            AND  fecha_subida < DATE_SUB(NOW(), INTERVAL :hours HOUR)
+                          {$userFilter}";
+            $updateDocs = $this->db->prepare($updateSql);
+            $updateDocs->execute($params);
 
             // Deactivate expired short links.
             $this->db->exec(

@@ -11,13 +11,17 @@ use RuntimeException;
 
 class SignDocument
 {
-    private PDO $db;
+    private PDO     $db;
+    private ?int    $userId;
+    private ?string $signerEmail;
 
     private const MAX_SIGNATURE_BYTES = 2_097_152; // 2 MB base64 cap
 
-    public function __construct(?PDO $db = null)
+    public function __construct(?PDO $db = null, ?int $userId = null, ?string $signerEmail = null)
     {
-        $this->db = $db ?? Database::getConnection();
+        $this->db          = $db ?? Database::getConnection();
+        $this->userId      = $userId;
+        $this->signerEmail = $signerEmail;
     }
 
     /**
@@ -31,14 +35,26 @@ class SignDocument
         $this->validateSignatureData($signatureData);
 
         try {
-            $stmt = $this->db->prepare(
-                'INSERT INTO firmas (documento_id, firma_data)
-                 VALUES (:documento_id, :firma_data)'
-            );
-            $stmt->execute([
-                ':documento_id' => $documentId,
-                ':firma_data'   => $signatureData,
-            ]);
+            if ($this->signerEmail !== null) {
+                $stmt = $this->db->prepare(
+                    'INSERT INTO firmas (documento_id, firma_data, signer_email)
+                     VALUES (:documento_id, :firma_data, :signer_email)'
+                );
+                $stmt->execute([
+                    ':documento_id'  => $documentId,
+                    ':firma_data'    => $signatureData,
+                    ':signer_email'  => $this->signerEmail,
+                ]);
+            } else {
+                $stmt = $this->db->prepare(
+                    'INSERT INTO firmas (documento_id, firma_data)
+                     VALUES (:documento_id, :firma_data)'
+                );
+                $stmt->execute([
+                    ':documento_id' => $documentId,
+                    ':firma_data'   => $signatureData,
+                ]);
+            }
 
             return (int) $this->db->lastInsertId();
         } catch (PDOException $e) {

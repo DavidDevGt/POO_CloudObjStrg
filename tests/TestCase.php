@@ -47,4 +47,21 @@ abstract class TestCase extends PhpUnitTestCase
         file_put_contents($path, 'This is not a PDF.');
         return $path;
     }
+
+    /**
+     * Returns a fake user array matching the usuarios table schema.
+     */
+    protected function makeTestUser(
+        string $email = 'test@example.com',
+        string $password = 'password123'
+    ): array {
+        return [
+            'id'            => 1,
+            'email'         => $email,
+            'password_hash' => password_hash($password, PASSWORD_BCRYPT),
+            'nombre'        => 'Test User',
+            'active'        => 1,
+            'created_at'    => date('Y-m-d H:i:s'),
+        ];
+    }
 }

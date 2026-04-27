@@ -9,8 +9,10 @@
     },
     "autoload": {
         "psr-4": {
-            "Config\\": "config/",
-            "Models\\": "models/"
+            "Config\\":     "config/",
+            "Models\\":     "models/",
+            "Contracts\\": "contracts/",
+            "Storage\\":    "storage/"
         }
     },
     "autoload-dev": {

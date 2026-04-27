@@ -38,3 +38,5 @@ class Migrate
 
 $migrate = new Migrate();
 $migrate->run(__DIR__ . '/001_create_tables.sql');
+$migrate->run(__DIR__ . '/002_add_indexes_cascade.sql');
+$migrate->run(__DIR__ . '/003_add_users_multitenancy.sql');

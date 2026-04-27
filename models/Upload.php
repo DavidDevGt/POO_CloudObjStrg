@@ -5,22 +5,32 @@ declare(strict_types=1);
 namespace Models;
 
 use Config\Database;
+use Contracts\FileStorageInterface;
+use Storage\LocalFileStorage;
 use finfo;
 use PDO;
 use RuntimeException;
 
 class Upload
 {
-    private PDO    $db;
-    private string $uploadDir;
+    private PDO                  $db;
+    private string               $uploadDir;
+    private ?int                 $userId;
+    private FileStorageInterface $storage;
 
     private const ALLOWED_MIME   = 'application/pdf';
     private const FILENAME_BYTES = 16;
 
-    public function __construct(?PDO $db = null, ?string $uploadDir = null)
-    {
+    public function __construct(
+        ?PDO $db = null,
+        ?string $uploadDir = null,
+        ?int $userId = null,
+        ?FileStorageInterface $storage = null
+    ) {
         $this->db        = $db ?? Database::getConnection();
         $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
+        $this->userId    = $userId;
+        $this->storage   = $storage ?? new LocalFileStorage($this->uploadDir);
 
         if (!is_dir($this->uploadDir)) {
             if (!mkdir($this->uploadDir, 0755, true) && !is_dir($this->uploadDir)) {
@@ -39,12 +49,11 @@ class Upload
     {
         $this->validate($file);
 
-        $storedName  = $this->generateStoredName();
-        $destination = $this->uploadDir . $storedName;
+        $storedName = $this->generateStoredName();
 
         $this->db->beginTransaction();
         try {
-            if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            if (!$this->storage->store($file['tmp_name'], $storedName)) {
                 throw new RuntimeException('Failed to move the uploaded file.');
             }
 
@@ -54,8 +63,8 @@ class Upload
             return $documentId;
         } catch (\Throwable $e) {
             $this->db->rollBack();
-            if (file_exists($destination)) {
-                unlink($destination);
+            if ($this->storage->exists($storedName)) {
+                $this->storage->delete($storedName);
             }
             throw $e;
         }
@@ -89,13 +98,24 @@ class Upload
 
     private function saveMetadata(string $originalName, string $storedName): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)'
-        );
-        $stmt->execute([
-            ':nombre' => mb_substr($originalName, 0, 255),
-            ':ruta'   => $storedName,
-        ]);
+        if ($this->userId !== null) {
+            $stmt = $this->db->prepare(
+                'INSERT INTO documentos (user_id, nombre, ruta) VALUES (:user_id, :nombre, :ruta)'
+            );
+            $stmt->execute([
+                ':user_id' => $this->userId,
+                ':nombre'  => mb_substr($originalName, 0, 255),
+                ':ruta'    => $storedName,
+            ]);
+        } else {
+            $stmt = $this->db->prepare(
+                'INSERT INTO documentos (nombre, ruta) VALUES (:nombre, :ruta)'
+            );
+            $stmt->execute([
+                ':nombre' => mb_substr($originalName, 0, 255),
+                ':ruta'   => $storedName,
+            ]);
+        }
 
         return (int) $this->db->lastInsertId();
     }

@@ -15,9 +15,12 @@ class UrlShortener
     private const SLUG_BYTES  = 8;   // 16 hex chars — 2^64 collision space
     private const MAX_RETRIES = 5;
 
-    public function __construct(?PDO $db = null)
+    private ?int $userId;
+
+    public function __construct(?PDO $db = null, ?int $userId = null)
     {
-        $this->db = $db ?? Database::getConnection();
+        $this->db     = $db ?? Database::getConnection();
+        $this->userId = $userId;
     }
 
     /**

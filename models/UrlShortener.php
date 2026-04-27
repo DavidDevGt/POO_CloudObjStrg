@@ -12,25 +12,34 @@ class UrlShortener
 {
     private PDO $db;
 
-    private const SLUG_BYTES   = 8;
-    private const MAX_RETRIES  = 5;
+    private const SLUG_BYTES  = 8;   // 16 hex chars — 2^64 collision space
+    private const MAX_RETRIES = 5;
 
-    public function __construct()
+    private ?int $userId;
+
+    public function __construct(?PDO $db = null, ?int $userId = null)
     {
-        $this->db = Database::getConnection();
+        $this->db     = $db ?? Database::getConnection();
+        $this->userId = $userId;
     }
 
+    /**
+     * Generates a unique slug, builds the short URL pointing to edit_pdf.php,
+     * and persists both to the enlaces_cortos table.
+     */
     public function createShortUrl(int $documentId, string $baseUrl): string
     {
         $slug     = $this->generateUniqueSlug();
-        $shortUrl = rtrim($baseUrl, '/') . '?id=' . $slug;
+        $shortUrl = rtrim($baseUrl, '/') . '/edit_pdf.php?id=' . $slug;
 
         $stmt = $this->db->prepare(
-            'INSERT INTO enlaces_cortos (documento_id, enlace) VALUES (:documento_id, :enlace)'
+            'INSERT INTO enlaces_cortos (documento_id, enlace, slug)
+             VALUES (:documento_id, :enlace, :slug)'
         );
         $stmt->execute([
             ':documento_id' => $documentId,
             ':enlace'       => $shortUrl,
+            ':slug'         => $slug,
         ]);
 
         return $shortUrl;
@@ -39,7 +48,7 @@ class UrlShortener
     public function getBaseUrl(): string
     {
         $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host   = $_SERVER['HTTP_HOST'];
+        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
         return "{$scheme}://{$host}";
     }
@@ -50,9 +59,9 @@ class UrlShortener
             $slug = bin2hex(random_bytes(self::SLUG_BYTES));
 
             $stmt = $this->db->prepare(
-                "SELECT 1 FROM enlaces_cortos WHERE enlace LIKE :pattern LIMIT 1"
+                'SELECT 1 FROM enlaces_cortos WHERE slug = :slug LIMIT 1'
             );
-            $stmt->execute([':pattern' => '%?id=' . $slug]);
+            $stmt->execute([':slug' => $slug]);
 
             if ($stmt->fetchColumn() === false) {
                 return $slug;

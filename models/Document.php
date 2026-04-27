@@ -58,7 +58,8 @@ class Document
     {
         $stmt = $this->db->prepare(
             "SELECT d.id, d.nombre, d.ruta, d.fecha_subida,
-                    e.slug, e.enlace, e.fecha_expiracion
+                    e.slug, e.enlace, e.fecha_expiracion,
+                    (SELECT COUNT(*) FROM firmas f WHERE f.documento_id = d.id) AS firma_count
              FROM   documentos d
              LEFT JOIN enlaces_cortos e ON e.documento_id = d.id AND e.active = TRUE
              WHERE  d.user_id = :user_id
@@ -72,6 +73,20 @@ class Document
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Soft-deletes a document owned by $ownerId.
+     * Returns false if the document doesn't exist or doesn't belong to that user.
+     */
+    public function deactivate(int $documentId, int $ownerId): bool
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE documentos SET active = FALSE
+             WHERE id = :id AND user_id = :user_id AND active = TRUE'
+        );
+        $stmt->execute([':id' => $documentId, ':user_id' => $ownerId]);
+        return $stmt->rowCount() > 0;
     }
 
     public function isExpired(array $document): bool

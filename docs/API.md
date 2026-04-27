@@ -5,18 +5,81 @@ JSON endpoints return `Content-Type: application/json`.
 
 ---
 
-## Endpoints
+## Authentication
+
+Session-based. Obtain a session cookie via `POST /api/auth/login.php` or `POST /api/auth/register.php`.  
+All owner endpoints (upload, delete, account) require an active session. Signer endpoints (download, edit_pdf, sign) are anonymous.
+
+---
+
+## Auth Endpoints
+
+### `POST /api/auth/register.php`
+
+Creates a new user account and starts a session.
+
+**Request** — `application/json`
+
+| Field          | Type   | Required | Constraints              |
+|----------------|--------|----------|--------------------------|
+| `email`        | string | Yes      | Valid email, unique      |
+| `password`     | string | Yes      | Min 8 characters         |
+| `nombre`       | string | No       | Display name             |
+| `_csrf_token`  | string | Yes      | CSRF token from session  |
+
+**Response — success (`200`)**
+```json
+{ "success": true, "message": "Cuenta creada con éxito." }
+```
+
+**Response — duplicate email (`409`)**
+```json
+{ "success": false, "message": "Este correo ya está registrado." }
+```
+
+---
+
+### `POST /api/auth/login.php`
+
+Authenticates a user and starts a session.
+
+**Request** — `application/json`
+
+| Field          | Type   | Required |
+|----------------|--------|----------|
+| `email`        | string | Yes      |
+| `password`     | string | Yes      |
+| `_csrf_token`  | string | Yes      |
+
+**Response — success (`200`)**
+```json
+{ "success": true, "message": "Sesión iniciada." }
+```
+
+**Response — wrong credentials (`401`)**
+```json
+{ "success": false, "message": "Credenciales incorrectas." }
+```
+
+---
+
+### `GET /logout.php`
+
+Destroys the session and redirects to `/login.php`. No JSON response.
+
+---
+
+## Document Endpoints
 
 ### `GET /index.php`
-Upload UI. Returns an HTML page with a PDF upload form.
 
-**No parameters.**
+Upload UI. Requires authentication — redirects to `/login.php` if not logged in.
 
 ---
 
 ### `POST /upload_endpoint.php`
 
-Uploads a PDF and returns a short link.
+Uploads a PDF and returns a short link. Requires authentication.
 
 **Request** — `multipart/form-data`
 
@@ -35,38 +98,49 @@ Uploads a PDF and returns a short link.
 }
 ```
 
-**Response — CSRF failure (`403`)**
-
+**Response — not authenticated (`401`)**
 ```json
-{
-  "success": false,
-  "message": "Token de seguridad inválido. Recarga la página."
-}
+{ "success": false, "message": "Autenticación requerida." }
+```
+
+**Response — CSRF failure (`403`)**
+```json
+{ "success": false, "message": "Token de seguridad inválido. Recarga la página." }
 ```
 
 **Response — validation failure (`400`)**
-
 ```json
-{
-  "success": false,
-  "message": "Only PDF files are allowed."
-}
+{ "success": false, "message": "Only PDF files are allowed." }
 ```
 
-**Response — method not allowed (`405`)**
+---
 
+### `POST /api/document/delete.php`
+
+Soft-deletes a document owned by the authenticated user.
+
+**Request** — `application/json`
+
+| Field          | Type    | Required |
+|----------------|---------|----------|
+| `document_id`  | integer | Yes      |
+| `_csrf_token`  | string  | Yes      |
+
+**Response — success (`200`)**
 ```json
-{
-  "success": false,
-  "message": "Método no permitido."
-}
+{ "success": true, "message": "Documento eliminado." }
+```
+
+**Response — not found (`404`)**
+```json
+{ "success": false, "message": "Documento no encontrado o ya eliminado." }
 ```
 
 ---
 
 ### `GET /download.php?id={slug}`
 
-Serves the original PDF file inline.
+Serves the original PDF file inline. Anonymous — no auth required.
 
 **Path parameters**
 
@@ -86,45 +160,21 @@ Cache-Control: private, no-store
 <binary PDF data>
 ```
 
-**Response — not found (`404`)**
-
-```
-Document not found or has been deactivated.
-```
-
-**Response — expired (`410`)**
-
-```
-This document link has expired.
-```
-
-**Response — invalid slug (`400`)**
-
-```
-Invalid document identifier.
-```
+**Response — not found (`404`)** · **expired (`410`)** · **invalid slug (`400`)**
 
 ---
 
 ### `GET /edit_pdf.php?id={slug}`
 
-Document viewer with integrated Signature Pad.
-
-**Path parameters**
-
-| Parameter | Format       | Description   |
-|-----------|--------------|---------------|
-| `id`      | 16 hex chars | Short URL slug |
+Document viewer with integrated Signature Pad. Anonymous — no auth required.
 
 **Response — success (`200`)**: Full HTML page with embedded PDF iframe and Signature Pad canvas.
-
-**Error responses**: HTML error page with HTTP status code `400`, `404`, or `410`.
 
 ---
 
 ### `POST /sign_endpoint.php`
 
-Saves a digital signature for a document.
+Saves a digital signature for a document. Anonymous — no auth required.
 
 **Request** — `application/json`
 
@@ -136,61 +186,70 @@ Saves a digital signature for a document.
 }
 ```
 
-| Field            | Type    | Required | Constraints                              |
-|------------------|---------|----------|------------------------------------------|
-| `document_id`    | integer | Yes      | Must be a positive integer               |
-| `signature_data` | string  | Yes      | Must start with `data:image/png;base64,` |
-| `_csrf_token`    | string  | Yes      | CSRF token from the current session      |
+**Response — success (`200`)**
+```json
+{ "success": true, "message": "Firma guardada correctamente.", "signature_id": 17 }
+```
+
+---
+
+## Account Endpoints
+
+### `GET /dashboard.php`
+
+Lists the authenticated user's documents with signature counts and management actions.
+
+### `GET /account.php`
+
+Account settings page (update name, change password).
+
+### `POST /api/account/update.php`
+
+Updates account settings. Requires authentication.
+
+**Request** — `application/json`
+
+Two actions are supported:
+
+**Update display name:**
+```json
+{ "action": "update_nombre", "nombre": "Jane Doe", "_csrf_token": "..." }
+```
+
+**Change password:**
+```json
+{
+  "action": "change_password",
+  "current_password": "old",
+  "new_password": "newpass123",
+  "_csrf_token": "..."
+}
+```
 
 **Response — success (`200`)**
-
 ```json
-{
-  "success":      true,
-  "message":      "Firma guardada correctamente.",
-  "signature_id": 17
-}
+{ "success": true, "message": "Nombre actualizado." }
 ```
 
-**Response — CSRF failure (`403`)**
-
+**Response — wrong current password (`400`)**
 ```json
-{
-  "success": false,
-  "message": "Token de seguridad inválido. Recarga la página."
-}
-```
-
-**Response — validation failure (`400`)**
-
-```json
-{
-  "success": false,
-  "message": "Invalid signature format. Expected a PNG data URL."
-}
-```
-
-**Response — method not allowed (`405`)**
-
-```json
-{
-  "success": false,
-  "message": "Método no permitido."
-}
+{ "success": false, "message": "La contraseña actual es incorrecta." }
 ```
 
 ---
 
 ## HTTP Status Code Summary
 
-| Code | Meaning                              | Used by                              |
-|------|--------------------------------------|--------------------------------------|
-| 200  | OK                                   | All successful responses             |
-| 400  | Bad Request / Validation Error       | Invalid slug, MIME, size, format     |
-| 403  | Forbidden (CSRF mismatch)            | `upload_endpoint`, `sign_endpoint`   |
-| 404  | Document not found or inactive       | `download`, `edit_pdf`               |
-| 405  | Method Not Allowed                   | All POST endpoints on non-POST       |
-| 410  | Gone (link expired)                  | `download`, `edit_pdf`               |
+| Code | Meaning                              | Used by                                     |
+|------|--------------------------------------|---------------------------------------------|
+| 200  | OK                                   | All successful responses                    |
+| 400  | Bad Request / Validation Error       | Invalid slug, MIME, size, format, password  |
+| 401  | Unauthorized                         | Protected endpoints without session         |
+| 403  | Forbidden (CSRF mismatch)            | All state-changing endpoints                |
+| 404  | Document not found / inactive        | `download`, `edit_pdf`, `delete`            |
+| 405  | Method Not Allowed                   | All POST endpoints on non-POST              |
+| 409  | Conflict                             | Duplicate email on register                 |
+| 410  | Gone (link expired)                  | `download`, `edit_pdf`                      |
 
 ---
 

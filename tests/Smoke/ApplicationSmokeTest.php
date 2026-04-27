@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Smoke;
 
+use Config\Auth;
 use Config\Csrf;
 use Config\Database;
+use Contracts\FileStorageInterface;
 use Models\AutoDelete;
 use Models\Document;
 use Models\SignDocument;
 use Models\Upload;
 use Models\UrlShortener;
+use Models\User;
+use Storage\LocalFileStorage;
 use Tests\TestCase;
 
 /**
@@ -144,5 +148,56 @@ class ApplicationSmokeTest extends TestCase
     public function testMigration002Exists(): void
     {
         $this->assertFileExists(dirname(__DIR__, 2) . '/migrations/002_add_indexes_cascade.sql');
+    }
+
+    public function testMigration003Exists(): void
+    {
+        $this->assertFileExists(dirname(__DIR__, 2) . '/migrations/003_add_users_multitenancy.sql');
+    }
+
+    // ── Phase 3 class loading ─────────────────────────────────────────────
+
+    public function testUserClassLoads(): void
+    {
+        $this->assertTrue(class_exists(User::class));
+    }
+
+    public function testAuthClassLoads(): void
+    {
+        $this->assertTrue(class_exists(Auth::class));
+    }
+
+    public function testFileStorageInterfaceLoads(): void
+    {
+        $this->assertTrue(interface_exists(FileStorageInterface::class));
+    }
+
+    public function testLocalFileStorageClassLoads(): void
+    {
+        $this->assertTrue(class_exists(LocalFileStorage::class));
+    }
+
+    // ── Phase 3 instantiation ─────────────────────────────────────────────
+
+    public function testUserCanBeInstantiatedWithMockedPdo(): void
+    {
+        $obj = new User($this->createMock(\PDO::class));
+        $this->assertInstanceOf(User::class, $obj);
+    }
+
+    public function testLocalFileStorageCanBeInstantiated(): void
+    {
+        $obj = new LocalFileStorage(sys_get_temp_dir() . '/');
+        $this->assertInstanceOf(LocalFileStorage::class, $obj);
+        $this->assertInstanceOf(FileStorageInterface::class, $obj);
+    }
+
+    // ── Auth state smoke ──────────────────────────────────────────────────
+
+    public function testAuthIsNotAuthenticatedByDefault(): void
+    {
+        Auth::reset();
+        $this->assertFalse(Auth::isAuthenticated());
+        Auth::reset();
     }
 }

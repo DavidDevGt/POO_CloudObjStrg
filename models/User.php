@@ -68,6 +68,22 @@ class User
         return $stmt->fetchColumn() !== false;
     }
 
+    public function updateNombre(int $userId, string $nombre): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE usuarios SET nombre = :nombre WHERE id = :id'
+        );
+        $stmt->execute([':nombre' => $nombre, ':id' => $userId]);
+    }
+
+    public function updatePassword(int $userId, string $newPassword): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE usuarios SET password_hash = :hash WHERE id = :id'
+        );
+        $stmt->execute([':hash' => $this->hashPassword($newPassword), ':id' => $userId]);
+    }
+
     private function hashPassword(string $password): string
     {
         $cost = (int) ($_ENV['BCRYPT_COST'] ?? 12);

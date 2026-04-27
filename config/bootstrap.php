@@ -12,7 +12,28 @@ $dotenv->load();
 $dotenv->required(['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS']);
 $dotenv->required(['APP_ENV'])->allowedValues(['development', 'production', 'testing']);
 
-// Session must be started before any output and before CSRF is used.
+// Production: suppress error output, log to file instead.
+if ($_ENV['APP_ENV'] === 'production') {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    error_reporting(E_ALL);
+    ini_set('log_errors', '1');
+} else {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+}
+
+// Secure session configuration.
+$isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

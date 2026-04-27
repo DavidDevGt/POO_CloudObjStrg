@@ -1,0 +1,10 @@
+[Unit]
+Description=POO_CloudObjStrg — AutoDelete expired documents
+After=network.target mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+ExecStart=/usr/bin/php /var/www/pdfmanager/bin/autodelete.php
+StandardOutput=append:/var/log/pdfmanager-autodelete.log
+StandardError=append:/var/log/pdfmanager-autodelete.log

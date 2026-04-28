@@ -142,6 +142,9 @@ mysql -u root pdf_store_test < migrations/003_add_users_multitenancy.sql
 
 See [docs/TESTING.md](docs/TESTING.md) for the full testing strategy.
 
+CI is configured via GitHub Actions (`.github/workflows/tests.yml`) to run `composer test:unit` and `composer test:smoke` on pull requests and pushes to `main`.
+
+
 ---
 
 ## Documentation
@@ -151,6 +154,7 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing strategy.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, component diagram, security model |
 | [docs/API.md](docs/API.md)         | All endpoints with request/response examples |
 | [docs/TESTING.md](docs/TESTING.md) | Testing strategy, pyramid, coverage targets |
+| [docs/RUNBOOK_OPERATIONS.md](docs/RUNBOOK_OPERATIONS.md) | Production operations runbook (deploy, monitoring, backup/restore, rollback) |
 
 ---
 

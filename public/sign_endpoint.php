@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/bootstrap.php';
 
 use Config\Csrf;
+use Config\Logger;
+use Config\RateLimit;
 use Models\Document;
 use Models\SignDocument;
 
@@ -16,6 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// 30 signatures per hour per IP
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!RateLimit::check('sign', $ip, 30, 3600)) {
+    Logger::warning('sign', 'Rate limit sign', ['ip' => $ip]);
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Límite de firmas alcanzado. Espera un momento.']);
+    exit;
+}
+
 $body = json_decode(file_get_contents('php://input'), true);
 
 if (!is_array($body)) {
@@ -24,7 +35,6 @@ if (!is_array($body)) {
     exit;
 }
 
-// CSRF check
 $csrfToken = $body['_csrf_token'] ?? '';
 if (!Csrf::validate($csrfToken)) {
     http_response_code(403);
@@ -54,8 +64,9 @@ try {
     $docModel = new Document();
     $docModel->logAccess((int) $documentId, 'firmar');
 
-    // Rotate CSRF token after successful use.
     Csrf::regenerate();
+
+    Logger::info('sign', 'Sign ok', ['document_id' => $documentId, 'signature_id' => $signId]);
 
     echo json_encode([
         'success'      => true,
@@ -63,7 +74,8 @@ try {
         'signature_id' => $signId,
     ]);
 } catch (\Throwable $e) {
-    error_log('[sign_endpoint] ' . $e->getMessage());
+    Logger::error('sign', 'Sign failed', ['document_id' => $documentId ?? null, 'error' => $e->getMessage()]);
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    // Never expose internal exception messages to anonymous callers.
+    echo json_encode(['success' => false, 'message' => 'Error al guardar la firma.']);
 }

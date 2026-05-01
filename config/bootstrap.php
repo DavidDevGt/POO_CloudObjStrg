@@ -23,8 +23,11 @@ if ($_ENV['APP_ENV'] === 'production') {
     error_reporting(E_ALL);
 }
 
-// Secure session configuration.
-$isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+// Proxy-aware HTTPS detection: trust X-Forwarded-Proto when TRUST_PROXY=true.
+$isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_ENV['TRUST_PROXY'] ?? 'false') === 'true'
+        && ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
 session_set_cookie_params([
     'lifetime' => 0,
     'path'     => '/',

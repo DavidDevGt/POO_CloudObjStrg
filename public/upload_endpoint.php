@@ -6,6 +6,8 @@ require_once dirname(__DIR__) . '/config/bootstrap.php';
 
 use Config\Auth;
 use Config\Csrf;
+use Config\Logger;
+use Config\RateLimit;
 use Models\Upload;
 use Models\UrlShortener;
 
@@ -17,15 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_FILES['pdfFile'])) {
     exit;
 }
 
-// Auth guard — unauthenticated callers receive 401 JSON instead of a redirect.
 if (!Auth::isAuthenticated()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Autenticación requerida.']);
     exit;
 }
+
 $userId = Auth::getUserId();
 
-// CSRF validation
+// 20 uploads per hour per user
+if (!RateLimit::check('upload', (string) $userId, 20, 3600)) {
+    Logger::warning('upload', 'Rate limit upload', ['user_id' => $userId]);
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Límite de subidas alcanzado. Espera un momento.']);
+    exit;
+}
+
 $csrfToken = $_POST['_csrf_token'] ?? '';
 if (!Csrf::validate($csrfToken)) {
     http_response_code(403);
@@ -42,8 +51,9 @@ try {
     $baseUrl  = rtrim($_ENV['BASE_URL'] ?? $urlShortener->getBaseUrl(), '/');
     $shortUrl = $urlShortener->createShortUrl($documentId, $baseUrl);
 
-    // Rotate token after successful operation.
     Csrf::regenerate();
+
+    Logger::info('upload', 'Upload ok', ['user_id' => $userId, 'document_id' => $documentId]);
 
     echo json_encode([
         'success' => true,
@@ -51,7 +61,8 @@ try {
         'link'    => $shortUrl,
     ]);
 } catch (\Throwable $e) {
-    error_log('[upload_endpoint] ' . $e->getMessage());
+    Logger::error('upload', 'Upload failed', ['user_id' => $userId, 'error' => $e->getMessage()]);
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    // Never leak internal exception messages to the client.
+    echo json_encode(['success' => false, 'message' => 'Error al subir el archivo.']);
 }

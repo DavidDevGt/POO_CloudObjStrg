@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/bootstrap.php';
 
 use Config\Csrf;
+use Config\Logger;
+use Config\RateLimit;
 use Models\Document;
 use Models\SignDocument;
 
@@ -16,6 +18,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$log = new Logger('sign');
+
+try {
+    RateLimit::check('sign', RateLimit::clientKey(), max: 30, window: 3600);
+} catch (\RuntimeException $e) {
+    $log->warning('Sign rate limit exceeded', ['ip' => RateLimit::clientKey()]);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    exit;
+}
+
 $body = json_decode(file_get_contents('php://input'), true);
 
 if (!is_array($body)) {
@@ -24,7 +36,6 @@ if (!is_array($body)) {
     exit;
 }
 
-// CSRF check
 $csrfToken = $body['_csrf_token'] ?? '';
 if (!Csrf::validate($csrfToken)) {
     http_response_code(403);
@@ -47,15 +58,22 @@ if (empty($signatureData)) {
     exit;
 }
 
+// Safe, known user-facing messages from SignDocument.
+$safeMessages = [
+    'Signature data exceeds the 2 MB limit.',
+    'Invalid signature format. Expected a PNG data URL.',
+];
+
 try {
-    $signDoc  = new SignDocument();
-    $signId   = $signDoc->saveSignature((int) $documentId, $signatureData);
+    $signDoc = new SignDocument();
+    $signId  = $signDoc->saveSignature((int) $documentId, $signatureData);
 
     $docModel = new Document();
     $docModel->logAccess((int) $documentId, 'firmar');
 
-    // Rotate CSRF token after successful use.
     Csrf::regenerate();
+
+    $log->info('Signature saved', ['doc_id' => $documentId, 'sign_id' => $signId]);
 
     echo json_encode([
         'success'      => true,
@@ -63,7 +81,12 @@ try {
         'signature_id' => $signId,
     ]);
 } catch (\Throwable $e) {
-    error_log('[sign_endpoint] ' . $e->getMessage());
+    $log->error('Sign failed', ['doc_id' => $documentId, 'error' => $e->getMessage()]);
+
+    $isSafe = in_array($e->getMessage(), $safeMessages, true);
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'message' => $isSafe ? $e->getMessage() : 'Error al guardar la firma. Inténtalo de nuevo.',
+    ]);
 }

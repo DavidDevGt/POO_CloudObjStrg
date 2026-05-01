@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: ["8.1", "8.2", "8.3"]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: pdf_store_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_mysql, mbstring, fileinfo, apcu
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Run Unit tests
+        run: composer test:unit
+
+      - name: Run Smoke tests
+        run: composer test:smoke
+
+      - name: Set up integration DB
+        run: |
+          mysql -h 127.0.0.1 -u root pdf_store_test < migrations/001_create_tables.sql
+          mysql -h 127.0.0.1 -u root pdf_store_test < migrations/002_add_indexes_cascade.sql
+          mysql -h 127.0.0.1 -u root pdf_store_test < migrations/003_add_users_multitenancy.sql
+
+      - name: Run Integration tests
+        run: composer test:integration
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: pdf_store_test
+          DB_USER: root
+          DB_PASS: ""
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Run composer audit
+        run: composer audit

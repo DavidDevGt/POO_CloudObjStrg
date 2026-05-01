@@ -19,8 +19,8 @@ class SignDocument
 
     public function __construct(?PDO $db = null, ?int $userId = null, ?string $signerEmail = null)
     {
-        $this->db          = $db ?? Database::getConnection();
-        $this->userId      = $userId;
+        $this->db = $db ?? Database::getConnection();
+        $this->userId = $userId;
         $this->signerEmail = $signerEmail;
     }
 
@@ -41,9 +41,9 @@ class SignDocument
                      VALUES (:documento_id, :firma_data, :signer_email)'
                 );
                 $stmt->execute([
-                    ':documento_id'  => $documentId,
-                    ':firma_data'    => $signatureData,
-                    ':signer_email'  => $this->signerEmail,
+                    ':documento_id' => $documentId,
+                    ':firma_data' => $signatureData,
+                    ':signer_email' => $this->signerEmail,
                 ]);
             } else {
                 $stmt = $this->db->prepare(
@@ -52,7 +52,7 @@ class SignDocument
                 );
                 $stmt->execute([
                     ':documento_id' => $documentId,
-                    ':firma_data'   => $signatureData,
+                    ':firma_data' => $signatureData,
                 ]);
             }
 

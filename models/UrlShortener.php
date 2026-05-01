@@ -12,14 +12,14 @@ class UrlShortener
 {
     private PDO $db;
 
-    private const SLUG_BYTES  = 8;   // 16 hex chars — 2^64 collision space
+    private const SLUG_BYTES = 8;   // 16 hex chars — 2^64 collision space
     private const MAX_RETRIES = 5;
 
     private ?int $userId;
 
     public function __construct(?PDO $db = null, ?int $userId = null)
     {
-        $this->db     = $db ?? Database::getConnection();
+        $this->db = $db ?? Database::getConnection();
         $this->userId = $userId;
     }
 
@@ -29,7 +29,7 @@ class UrlShortener
      */
     public function createShortUrl(int $documentId, string $baseUrl): string
     {
-        $slug     = $this->generateUniqueSlug();
+        $slug = $this->generateUniqueSlug();
         $shortUrl = rtrim($baseUrl, '/') . '/edit_pdf.php?id=' . $slug;
 
         $stmt = $this->db->prepare(
@@ -38,8 +38,8 @@ class UrlShortener
         );
         $stmt->execute([
             ':documento_id' => $documentId,
-            ':enlace'       => $shortUrl,
-            ':slug'         => $slug,
+            ':enlace' => $shortUrl,
+            ':slug' => $slug,
         ]);
 
         return $shortUrl;
@@ -48,7 +48,7 @@ class UrlShortener
     public function getBaseUrl(): string
     {
         $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
         return "{$scheme}://{$host}";
     }

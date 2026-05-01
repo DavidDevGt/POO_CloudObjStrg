@@ -19,8 +19,8 @@ class UrlShortenerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->pdo      = $this->createMock(PDO::class);
-        $this->stmt     = $this->createMock(PDOStatement::class);
+        $this->pdo = $this->createMock(PDO::class);
+        $this->stmt = $this->createMock(PDOStatement::class);
         $this->shortener = new UrlShortener($this->pdo);
     }
 
@@ -46,6 +46,7 @@ class UrlShortenerTest extends TestCase
         $this->stmt->method('fetchColumn')->willReturnCallback(
             function () use (&$callCount) {
                 $callCount++;
+
                 return $callCount === 1 ? '1' : false;
             }
         );
@@ -117,7 +118,7 @@ class UrlShortenerTest extends TestCase
 
     public function testGetBaseUrlReturnsHttpsWhenHttpsOn(): void
     {
-        $_SERVER['HTTPS']     = 'on';
+        $_SERVER['HTTPS'] = 'on';
         $_SERVER['HTTP_HOST'] = 'example.com';
 
         $url = $this->shortener->getBaseUrl();
@@ -133,6 +134,7 @@ class UrlShortenerTest extends TestCase
     {
         $ref = new \ReflectionMethod(UrlShortener::class, $method);
         $ref->setAccessible(true);
+
         return $ref->invoke($this->shortener, ...$args);
     }
 }

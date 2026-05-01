@@ -6,8 +6,8 @@ namespace Tests\Unit\Models;
 
 use Models\AutoDelete;
 use PDO;
-use PDOStatement;
 use PDOException;
+use PDOStatement;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -20,17 +20,19 @@ class AutoDeleteTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->tmpDir     = sys_get_temp_dir() . '/autodelete_test_' . uniqid() . '/';
+        $this->tmpDir = sys_get_temp_dir() . '/autodelete_test_' . uniqid() . '/';
         mkdir($this->tmpDir, 0755, true);
 
-        $this->pdo        = $this->createMock(PDO::class);
+        $this->pdo = $this->createMock(PDO::class);
         $this->autoDelete = new AutoDelete($this->pdo, $this->tmpDir);
     }
 
     protected function tearDown(): void
     {
         foreach (glob($this->tmpDir . '*') ?: [] as $f) {
-            if (is_file($f)) unlink($f);
+            if (is_file($f)) {
+                unlink($f);
+            }
         }
         @rmdir($this->tmpDir);
         parent::tearDown();

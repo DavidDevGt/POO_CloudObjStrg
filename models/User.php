@@ -24,10 +24,11 @@ class User
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':email'  => mb_strtolower(trim($email)),
-                ':hash'   => $this->hashPassword($password),
+                ':email' => mb_strtolower(trim($email)),
+                ':hash' => $this->hashPassword($password),
                 ':nombre' => $nombre,
             ]);
+
             return (int) $this->db->lastInsertId();
         } catch (PDOException $e) {
             throw new RuntimeException('Could not create user: ' . $e->getMessage(), 0, $e);
@@ -41,6 +42,7 @@ class User
         );
         $stmt->execute([':email' => mb_strtolower(trim($email))]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
         return $row !== false ? $row : null;
     }
 
@@ -51,6 +53,7 @@ class User
         );
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
         return $row !== false ? $row : null;
     }
 
@@ -65,6 +68,7 @@ class User
             'SELECT 1 FROM usuarios WHERE email = :email LIMIT 1'
         );
         $stmt->execute([':email' => mb_strtolower(trim($email))]);
+
         return $stmt->fetchColumn() !== false;
     }
 
@@ -87,6 +91,7 @@ class User
     private function hashPassword(string $password): string
     {
         $cost = (int) ($_ENV['BCRYPT_COST'] ?? 12);
+
         return password_hash($password, PASSWORD_BCRYPT, ['cost' => $cost]);
     }
 }

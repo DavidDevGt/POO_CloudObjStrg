@@ -1,0 +1,14 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - config
+        - contracts
+        - models
+        - storage
+    excludePaths:
+        - config/bootstrap.php
+    tmpDir: /tmp/phpstan

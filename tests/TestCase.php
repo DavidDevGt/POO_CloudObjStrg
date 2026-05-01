@@ -35,6 +35,7 @@ abstract class TestCase extends PhpUnitTestCase
         // Minimal PDF magic header so finfo returns application/pdf
         $content = "%PDF-1.4\n" . str_repeat('x', max(0, $sizeBytes - 9));
         file_put_contents($path, $content);
+
         return $path;
     }
 
@@ -45,6 +46,7 @@ abstract class TestCase extends PhpUnitTestCase
     {
         $path = tempnam(sys_get_temp_dir(), 'phpunit_txt_');
         file_put_contents($path, 'This is not a PDF.');
+
         return $path;
     }
 
@@ -56,12 +58,12 @@ abstract class TestCase extends PhpUnitTestCase
         string $password = 'password123'
     ): array {
         return [
-            'id'            => 1,
-            'email'         => $email,
+            'id' => 1,
+            'email' => $email,
             'password_hash' => password_hash($password, PASSWORD_BCRYPT),
-            'nombre'        => 'Test User',
-            'active'        => 1,
-            'created_at'    => date('Y-m-d H:i:s'),
+            'nombre' => 'Test User',
+            'active' => 1,
+            'created_at' => date('Y-m-d H:i:s'),
         ];
     }
 }

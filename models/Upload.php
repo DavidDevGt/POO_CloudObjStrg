@@ -6,10 +6,10 @@ namespace Models;
 
 use Config\Database;
 use Contracts\FileStorageInterface;
-use Storage\LocalFileStorage;
 use finfo;
 use PDO;
 use RuntimeException;
+use Storage\LocalFileStorage;
 
 class Upload
 {
@@ -18,7 +18,7 @@ class Upload
     private ?int                 $userId;
     private FileStorageInterface $storage;
 
-    private const ALLOWED_MIME   = 'application/pdf';
+    private const ALLOWED_MIME = 'application/pdf';
     private const FILENAME_BYTES = 16;
 
     public function __construct(
@@ -27,10 +27,10 @@ class Upload
         ?int $userId = null,
         ?FileStorageInterface $storage = null
     ) {
-        $this->db        = $db ?? Database::getConnection();
+        $this->db = $db ?? Database::getConnection();
         $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
-        $this->userId    = $userId;
-        $this->storage   = $storage ?? new LocalFileStorage($this->uploadDir);
+        $this->userId = $userId;
+        $this->storage = $storage ?? new LocalFileStorage($this->uploadDir);
 
         if (!is_dir($this->uploadDir)) {
             if (!mkdir($this->uploadDir, 0755, true) && !is_dir($this->uploadDir)) {
@@ -76,7 +76,7 @@ class Upload
             throw new RuntimeException('Upload error, code: ' . $file['error']);
         }
 
-        $finfo    = new finfo(FILEINFO_MIME_TYPE);
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($file['tmp_name']);
 
         if ($mimeType !== self::ALLOWED_MIME) {
@@ -104,8 +104,8 @@ class Upload
             );
             $stmt->execute([
                 ':user_id' => $this->userId,
-                ':nombre'  => mb_substr($originalName, 0, 255),
-                ':ruta'    => $storedName,
+                ':nombre' => mb_substr($originalName, 0, 255),
+                ':ruta' => $storedName,
             ]);
         } else {
             $stmt = $this->db->prepare(
@@ -113,7 +113,7 @@ class Upload
             );
             $stmt->execute([
                 ':nombre' => mb_substr($originalName, 0, 255),
-                ':ruta'   => $storedName,
+                ':ruta' => $storedName,
             ]);
         }
 

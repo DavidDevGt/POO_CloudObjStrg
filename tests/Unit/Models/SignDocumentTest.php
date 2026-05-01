@@ -19,8 +19,8 @@ class SignDocumentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->pdo     = $this->createMock(PDO::class);
-        $this->stmt    = $this->createMock(PDOStatement::class);
+        $this->pdo = $this->createMock(PDO::class);
+        $this->stmt = $this->createMock(PDOStatement::class);
         $this->signDoc = new SignDocument($this->pdo);
     }
 

@@ -29,7 +29,7 @@ class UserTest extends TestCase
         $this->pdo->method('lastInsertId')->willReturn('7');
 
         $user = new User($this->pdo);
-        $id   = $user->create('test@example.com', 'password123');
+        $id = $user->create('test@example.com', 'password123');
 
         $this->assertSame(7, $id);
     }
@@ -50,7 +50,7 @@ class UserTest extends TestCase
     public function testFindByEmailReturnsRowWhenFound(): void
     {
         $expected = ['id' => 3, 'email' => 'a@b.com', 'password_hash' => 'hash'];
-        $stmt     = $this->createMock(PDOStatement::class);
+        $stmt = $this->createMock(PDOStatement::class);
         $stmt->method('execute')->willReturn(true);
         $stmt->method('fetch')->willReturn($expected);
 
@@ -75,7 +75,7 @@ class UserTest extends TestCase
     public function testFindByIdReturnsRowWhenFound(): void
     {
         $expected = ['id' => 1, 'email' => 'x@y.com'];
-        $stmt     = $this->createMock(PDOStatement::class);
+        $stmt = $this->createMock(PDOStatement::class);
         $stmt->method('execute')->willReturn(true);
         $stmt->method('fetch')->willReturn($expected);
 

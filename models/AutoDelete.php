@@ -18,10 +18,10 @@ class AutoDelete
 
     public function __construct(?PDO $db = null, ?string $uploadDir = null, ?int $userId = null)
     {
-        $this->db                  = $db ?? Database::getConnection();
-        $this->uploadDir           = $uploadDir ?? dirname(__DIR__) . '/uploads/';
+        $this->db = $db ?? Database::getConnection();
+        $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
         $this->deleteIntervalHours = (int) ($_ENV['AUTO_DELETE_HOURS'] ?? 12);
-        $this->userId              = $userId;
+        $this->userId = $userId;
     }
 
     /**
@@ -59,8 +59,8 @@ class AutoDelete
 
             // Deactivate expired short links.
             $this->db->exec(
-                "UPDATE enlaces_cortos SET active = FALSE
-                 WHERE  active = TRUE AND fecha_expiracion < NOW()"
+                'UPDATE enlaces_cortos SET active = FALSE
+                 WHERE  active = TRUE AND fecha_expiracion < NOW()'
             );
 
             $this->db->commit();

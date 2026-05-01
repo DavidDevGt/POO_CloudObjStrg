@@ -21,7 +21,7 @@ class CsrfTest extends TestCase
 
     public function testGetTokenReturnsSameTokenOnSubsequentCalls(): void
     {
-        $first  = Csrf::getToken();
+        $first = Csrf::getToken();
         $second = Csrf::getToken();
 
         $this->assertSame($first, $second);

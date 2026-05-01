@@ -17,9 +17,9 @@ class Document
 
     public function __construct(?PDO $db = null, ?string $uploadDir = null, ?int $userId = null)
     {
-        $this->db        = $db ?? Database::getConnection();
+        $this->db = $db ?? Database::getConnection();
         $this->uploadDir = $uploadDir ?? dirname(__DIR__) . '/uploads/';
-        $this->userId    = $userId;
+        $this->userId = $userId;
     }
 
     /**
@@ -30,7 +30,7 @@ class Document
     public function findBySlug(string $slug): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT d.id, d.nombre, d.ruta, d.active, d.fecha_subida,
+            'SELECT d.id, d.nombre, d.ruta, d.active, d.fecha_subida,
                     e.id          AS link_id,
                     e.enlace,
                     e.active      AS link_active,
@@ -41,12 +41,12 @@ class Document
              WHERE  e.slug    = :slug
                AND  e.active  = TRUE
                AND  d.active  = TRUE
-             LIMIT  1"
+             LIMIT  1'
         );
         $stmt->execute([':slug' => $slug]);
         $row = $stmt->fetch();
 
-        return $row ?: null;
+        return $row !== false ? $row : null;
     }
 
     /**
@@ -57,7 +57,7 @@ class Document
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->db->prepare(
-            "SELECT d.id, d.nombre, d.ruta, d.fecha_subida,
+            'SELECT d.id, d.nombre, d.ruta, d.fecha_subida,
                     e.slug, e.enlace, e.fecha_expiracion,
                     (SELECT COUNT(*) FROM firmas f WHERE f.documento_id = d.id) AS firma_count
              FROM   documentos d
@@ -65,11 +65,11 @@ class Document
              WHERE  d.user_id = :user_id
                AND  d.active  = TRUE
              ORDER BY d.fecha_subida DESC
-             LIMIT  :lim OFFSET :off"
+             LIMIT  :lim OFFSET :off'
         );
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim',     $limit,  PDO::PARAM_INT);
-        $stmt->bindValue(':off',     $offset, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -86,6 +86,7 @@ class Document
              WHERE id = :id AND user_id = :user_id AND active = TRUE'
         );
         $stmt->execute([':id' => $documentId, ':user_id' => $ownerId]);
+
         return $stmt->rowCount() > 0;
     }
 
@@ -144,8 +145,8 @@ class Document
                 );
                 $stmt->execute([
                     ':documento_id' => $documentId,
-                    ':accion'       => $accion,
-                    ':user_id'      => $this->userId,
+                    ':accion' => $accion,
+                    ':user_id' => $this->userId,
                 ]);
             } else {
                 $stmt = $this->db->prepare(
@@ -153,7 +154,7 @@ class Document
                 );
                 $stmt->execute([
                     ':documento_id' => $documentId,
-                    ':accion'       => $accion,
+                    ':accion' => $accion,
                 ]);
             }
         } catch (PDOException $e) {

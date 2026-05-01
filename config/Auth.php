@@ -71,6 +71,7 @@ class Auth
         if (self::$user === null) {
             throw new RuntimeException('Authentication required.', 401);
         }
+
         return (int) self::$user['id'];
     }
 
@@ -80,6 +81,7 @@ class Auth
             header('Location: ' . $url);
             exit;
         }
+
         return (int) self::$user['id'];
     }
 

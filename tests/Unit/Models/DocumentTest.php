@@ -20,18 +20,20 @@ class DocumentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->tmpDir   = sys_get_temp_dir() . '/doc_test_' . uniqid() . '/';
+        $this->tmpDir = sys_get_temp_dir() . '/doc_test_' . uniqid() . '/';
         mkdir($this->tmpDir, 0755, true);
 
-        $this->pdo      = $this->createMock(PDO::class);
-        $this->stmt     = $this->createMock(PDOStatement::class);
+        $this->pdo = $this->createMock(PDO::class);
+        $this->stmt = $this->createMock(PDOStatement::class);
         $this->document = new Document($this->pdo, $this->tmpDir);
     }
 
     protected function tearDown(): void
     {
         foreach (glob($this->tmpDir . '*') ?: [] as $f) {
-            if (is_file($f)) unlink($f);
+            if (is_file($f)) {
+                unlink($f);
+            }
         }
         @rmdir($this->tmpDir);
         parent::tearDown();
@@ -95,7 +97,7 @@ class DocumentTest extends TestCase
         $filename = 'abcdef1234567890.pdf';
         file_put_contents($this->tmpDir . $filename, '%PDF-1.4');
 
-        $doc  = ['ruta' => $filename];
+        $doc = ['ruta' => $filename];
         $path = $this->document->getFilePath($doc);
 
         $this->assertSame($this->tmpDir . $filename, $path);

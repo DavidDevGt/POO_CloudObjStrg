@@ -26,14 +26,14 @@ class RateLimit
     private static function checkApcu(string $action, string $key, int $max, int $window): bool
     {
         $cacheKey = "rl:{$action}:{$key}";
-        $now      = time();
+        $now = time();
 
         $hits = apcu_fetch($cacheKey, $exists);
         if (!$exists || !is_array($hits)) {
             $hits = [];
         }
 
-        $hits = array_values(array_filter($hits, fn(int $t) => $t > $now - $window));
+        $hits = array_values(array_filter($hits, fn (int $t) => $t > $now - $window));
 
         if (count($hits) >= $max) {
             return false;
@@ -41,6 +41,7 @@ class RateLimit
 
         $hits[] = $now;
         apcu_store($cacheKey, $hits, $window);
+
         return true;
     }
 
@@ -48,13 +49,13 @@ class RateLimit
 
     private static function checkFile(string $action, string $key, int $max, int $window): bool
     {
-        $dir  = sys_get_temp_dir() . '/rl';
+        $dir = sys_get_temp_dir() . '/rl';
         if (!is_dir($dir)) {
             mkdir($dir, 0700, true);
         }
 
         $file = $dir . '/' . hash('sha256', "{$action}:{$key}") . '.json';
-        $now  = time();
+        $now = time();
         $lock = fopen($file, 'c+');
 
         if ($lock === false) {
@@ -62,17 +63,19 @@ class RateLimit
         }
 
         flock($lock, LOCK_EX);
-        $data = json_decode(stream_get_contents($lock) ?: '[]', true);
+        $raw = stream_get_contents($lock);
+        $data = json_decode($raw !== false ? $raw : '[]', true);
 
         if (!is_array($data)) {
             $data = [];
         }
 
-        $data = array_values(array_filter($data, fn(int $t) => $t > $now - $window));
+        $data = array_values(array_filter($data, fn (int $t) => $t > $now - $window));
 
         if (count($data) >= $max) {
             flock($lock, LOCK_UN);
             fclose($lock);
+
             return false;
         }
 
@@ -82,6 +85,7 @@ class RateLimit
         fwrite($lock, json_encode($data));
         flock($lock, LOCK_UN);
         fclose($lock);
+
         return true;
     }
 }

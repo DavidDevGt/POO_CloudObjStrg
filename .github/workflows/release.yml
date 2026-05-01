@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+
+  # ── Gate: full test suite must pass ───────────────────────────────────
+  test-gate:
+    name: Test Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, apcu
+          ini-values: apc.enabled=1, apc.enable_cli=1
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer test:unit
+      - run: composer test:smoke
+      - run: composer analyse
+
+  # ── Build production artifact ─────────────────────────────────────────
+  build:
+    name: Build Artifact
+    runs-on: ubuntu-latest
+    needs: test-gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - name: Install production dependencies only
+        run: composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+      - name: Build release archive
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          zip -r "pdfmanager-${TAG}.zip" . \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "tests/*" \
+            --exclude "*.md" \
+            --exclude ".env*" \
+            --exclude "phpstan*" \
+            --exclude ".php-cs-fixer*" \
+            --exclude "coverage*" \
+            --exclude "phpunit.xml"
+          echo "ARTIFACT=pdfmanager-${TAG}.zip" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact
+          path: pdfmanager-*.zip
+
+  # ── Create GitHub Release ─────────────────────────────────────────────
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: pdfmanager-*.zip
+          fail_on_unmatched_files: true

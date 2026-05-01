@@ -1,0 +1,87 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 7 * * 1'   # every Monday 07:00 UTC
+
+jobs:
+
+  # ── Composer dependency audit ─────────────────────────────────────────
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Audit for known CVEs
+        run: composer audit --format=json 2>&1 | tee audit-results.json; composer audit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-results
+          path: audit-results.json
+          retention-days: 30
+
+  # ── GitHub Dependency Review (blocks PRs with vulnerable deps) ────────
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0
+
+  # ── Secret / credential leak scan ────────────────────────────────────
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect hardcoded secrets
+        run: |
+          set +e
+          PATTERNS=(
+            'password\s*=\s*["\x27][^"\x27]{4,}'
+            'DB_PASS\s*=\s*[^$\s]'
+            'secret\s*=\s*["\x27][^"\x27]{4,}'
+            'api.?key\s*=\s*["\x27][^"\x27]{4,}'
+            'BEGIN (RSA|EC|OPENSSH) PRIVATE KEY'
+          )
+          FOUND=0
+          for PAT in "${PATTERNS[@]}"; do
+            RESULT=$(grep -rniE "$PAT" \
+              --include="*.php" --include="*.env" --include="*.json" \
+              --exclude-dir=vendor --exclude-dir=.git \
+              . 2>/dev/null | grep -v ".env.example" | grep -v "test" || true)
+            if [ -n "$RESULT" ]; then
+              echo "Potential secret found:"
+              echo "$RESULT"
+              FOUND=1
+            fi
+          done
+          exit $FOUND
+
+  # ── PHP security-focused static analysis ────────────────────────────
+  phpstan-security:
+    name: PHPStan Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer analyse

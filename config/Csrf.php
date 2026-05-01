@@ -6,14 +6,16 @@ namespace Config;
 
 class Csrf
 {
-    private const TOKEN_KEY   = '_csrf_token';
+    private const TOKEN_KEY = '_csrf_token';
     private const TOKEN_BYTES = 32;
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
     public static function getToken(): string
     {
-        if (empty($_SESSION[self::TOKEN_KEY])) {
+        if (!isset($_SESSION[self::TOKEN_KEY]) || $_SESSION[self::TOKEN_KEY] === '') {
             self::regenerate();
         }
 
@@ -24,6 +26,7 @@ class Csrf
     {
         $token = bin2hex(random_bytes(self::TOKEN_BYTES));
         $_SESSION[self::TOKEN_KEY] = $token;
+
         return $token;
     }
 
@@ -32,7 +35,7 @@ class Csrf
      */
     public static function validate(string $token): bool
     {
-        if (empty($_SESSION[self::TOKEN_KEY])) {
+        if (!isset($_SESSION[self::TOKEN_KEY]) || $_SESSION[self::TOKEN_KEY] === '') {
             return false;
         }
 

@@ -1,0 +1,13 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Property Models\\SignDocument\:\:\$userId is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: models/SignDocument.php
+
+		-
+			message: '#^Property Models\\UrlShortener\:\:\$userId is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: models/UrlShortener.php

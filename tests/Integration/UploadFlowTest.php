@@ -43,7 +43,7 @@ class UploadFlowTest extends TestCase
             $this->markTestSkipped('Integration DB not available: ' . $e->getMessage());
         }
 
-        $this->tmpDir   = sys_get_temp_dir() . '/integration_test_' . uniqid() . '/';
+        $this->tmpDir = sys_get_temp_dir() . '/integration_test_' . uniqid() . '/';
         mkdir($this->tmpDir, 0755, true);
 
         // Create a minimal valid PDF file.
@@ -51,7 +51,7 @@ class UploadFlowTest extends TestCase
         file_put_contents($this->testFile, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF");
 
         // Create an integration test user.
-        $userModel        = new User($this->db);
+        $userModel = new User($this->db);
         $this->testUserId = $userModel->create('integration@test.com', 'password123', 'Integration');
     }
 
@@ -70,7 +70,7 @@ class UploadFlowTest extends TestCase
     public function testFullUploadAndRetrievalFlow(): void
     {
         // 1. Simulate saving metadata directly (upload() needs move_uploaded_file).
-        $upload     = new Upload($this->db, $this->tmpDir, $this->testUserId);
+        $upload = new Upload($this->db, $this->tmpDir, $this->testUserId);
         $storedName = bin2hex(random_bytes(16)) . '.pdf';
 
         // Copy test file as if it were already moved.
@@ -85,7 +85,7 @@ class UploadFlowTest extends TestCase
 
         // 2. Create a short URL for the document.
         $shortener = new UrlShortener($this->db, $this->testUserId);
-        $shortUrl  = $shortener->createShortUrl($documentId, 'http://localhost/public');
+        $shortUrl = $shortener->createShortUrl($documentId, 'http://localhost/public');
 
         $this->assertStringContainsString('/edit_pdf.php?id=', $shortUrl);
 
@@ -94,7 +94,7 @@ class UploadFlowTest extends TestCase
         $slug = $params['id'];
 
         $docModel = new Document($this->db, $this->tmpDir);
-        $doc      = $docModel->findBySlug($slug);
+        $doc = $docModel->findBySlug($slug);
 
         $this->assertNotNull($doc);
         $this->assertEquals($documentId, (int) $doc['id']);
@@ -102,14 +102,14 @@ class UploadFlowTest extends TestCase
 
         // 4. Verify document appears in user's list.
         $userDocs = $docModel->listByUser($this->testUserId);
-        $ids      = array_column($userDocs, 'id');
+        $ids = array_column($userDocs, 'id');
         $this->assertContains((string) $documentId, $ids);
     }
 
     public function testFindBySlugReturnsNullForUnknownSlug(): void
     {
         $docModel = new Document($this->db, $this->tmpDir);
-        $result   = $docModel->findBySlug('0000000000000000');
+        $result = $docModel->findBySlug('0000000000000000');
 
         $this->assertNull($result);
     }
@@ -121,8 +121,8 @@ class UploadFlowTest extends TestCase
         $stmt->execute([':n' => 'sign_test.pdf', ':r' => 'sign_test_stored.pdf']);
         $docId = (int) $this->db->lastInsertId();
 
-        $signDoc   = new SignDocument($this->db);
-        $signData  = 'data:image/png;base64,' . base64_encode('fake-sig-data');
+        $signDoc = new SignDocument($this->db);
+        $signData = 'data:image/png;base64,' . base64_encode('fake-sig-data');
         $signatureId = $signDoc->saveSignature($docId, $signData);
 
         $this->assertGreaterThan(0, $signatureId);

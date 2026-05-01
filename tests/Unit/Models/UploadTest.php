@@ -24,7 +24,7 @@ class UploadTest extends TestCase
         $this->tmpDir = sys_get_temp_dir() . '/upload_test_' . uniqid();
         mkdir($this->tmpDir, 0755, true);
 
-        $this->pdo  = $this->createMock(PDO::class);
+        $this->pdo = $this->createMock(PDO::class);
         $this->stmt = $this->createMock(PDOStatement::class);
 
         $this->upload = new Upload($this->pdo, $this->tmpDir . '/');
@@ -81,7 +81,7 @@ class UploadTest extends TestCase
     public function testValidateThrowsOnNonPdfMimeType(): void
     {
         $tmpFile = $this->makeTempText();
-        $file    = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 100]);
+        $file = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 100]);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/PDF/');
@@ -98,7 +98,7 @@ class UploadTest extends TestCase
     public function testValidateThrowsWhenFileTooLarge(): void
     {
         $tmpFile = $this->makeTempPdf(6_000_000); // 6 MB — over the 5 MB limit
-        $file    = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 6_000_000]);
+        $file = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 6_000_000]);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/MB/');
@@ -113,7 +113,7 @@ class UploadTest extends TestCase
     public function testValidatePassesForValidSmallPdf(): void
     {
         $tmpFile = $this->makeTempPdf(1024);
-        $file    = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 1024]);
+        $file = $this->buildFile(['tmp_name' => $tmpFile, 'size' => 1024]);
 
         // No exception expected.
         $this->invokePrivate('validate', $file);
@@ -129,7 +129,7 @@ class UploadTest extends TestCase
         $longName = str_repeat('a', 300); // exceeds VARCHAR(255)
 
         $this->stmt->expects($this->once())->method('execute')->with(
-            $this->callback(fn(array $p) => mb_strlen($p[':nombre']) <= 255)
+            $this->callback(fn (array $p) => mb_strlen($p[':nombre']) <= 255)
         )->willReturn(true);
 
         $this->pdo->method('prepare')->willReturn($this->stmt);
@@ -145,10 +145,10 @@ class UploadTest extends TestCase
     private function buildFile(array $overrides = []): array
     {
         return array_merge([
-            'error'    => UPLOAD_ERR_OK,
+            'error' => UPLOAD_ERR_OK,
             'tmp_name' => '',
-            'size'     => 512,
-            'name'     => 'document.pdf',
+            'size' => 512,
+            'name' => 'document.pdf',
         ], $overrides);
     }
 
@@ -156,6 +156,7 @@ class UploadTest extends TestCase
     {
         $ref = new \ReflectionMethod(Upload::class, $method);
         $ref->setAccessible(true);
+
         return $ref->invoke($this->upload, ...$args);
     }
 }

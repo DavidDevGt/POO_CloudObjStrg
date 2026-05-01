@@ -31,6 +31,7 @@ class LocalFileStorage implements FileStorageInterface
         if (!file_exists($path)) {
             return true;
         }
+
         return unlink($path);
     }
 

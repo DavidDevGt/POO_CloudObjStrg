@@ -6,6 +6,8 @@ require_once dirname(__DIR__, 3) . '/config/bootstrap.php';
 
 use Config\Auth;
 use Config\Csrf;
+use Config\Logger;
+use Config\RateLimit;
 use Models\User;
 
 header('Content-Type: application/json');
@@ -13,6 +15,15 @@ header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
+    exit;
+}
+
+// 5 registrations per 300 s per IP
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!RateLimit::check('register', $ip, 5, 300)) {
+    Logger::warning('auth', 'Rate limit register', ['ip' => $ip]);
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Demasiados registros. Espera unos minutos.']);
     exit;
 }
 
@@ -57,9 +68,10 @@ if ($userModel->emailExists($email)) {
 try {
     $newId = $userModel->create($email, $password, $nombre);
     Auth::login($newId);
+    Logger::info('auth', 'Register ok', ['user_id' => $newId]);
     echo json_encode(['success' => true, 'message' => 'Cuenta creada con éxito.']);
 } catch (\RuntimeException $e) {
-    error_log('[register] ' . $e->getMessage());
+    Logger::error('auth', 'Register failed', ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error al crear la cuenta. Inténtalo de nuevo.']);
 }
